@@ -6,7 +6,7 @@ import {
   updateWorkspace as updateWs,
   deleteWorkspace as deleteWs,
   toggleWorkspaceSharing,
-} from '../../lib/firestore'
+} from '../../lib/db'
 
 interface UseWorkspaceReturn {
   /** The currently loaded workspace, or null. */
@@ -23,6 +23,8 @@ interface UseWorkspaceReturn {
   update: (updates: UpdateWorkspaceInput) => Promise<void>
   /** Delete the current workspace and clear it. */
   remove: () => Promise<void>
+  /** Delete any workspace by ID (clears active if it matches). Returns true on success. */
+  removeById: (id: string) => Promise<boolean>
   /** Toggle sharing and return the shareId (or null if disabled). */
   toggleSharing: (shared: boolean) => Promise<string | null>
   /** Clear the current workspace from state (does not delete from DB). */
@@ -99,6 +101,19 @@ export function useWorkspace(): UseWorkspaceReturn {
     }
   }, [workspace])
 
+  const removeById = useCallback(async (id: string) => {
+    setError(null)
+    try {
+      await deleteWs(id)
+      // Clear the active workspace only if it's the one we just deleted.
+      setWorkspace(prev => (prev?.id === id ? null : prev))
+      return true
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete workspace')
+      return false
+    }
+  }, [])
+
   const toggleSharing = useCallback(async (shared: boolean) => {
     if (!workspace) return null
     setLoading(true)
@@ -122,5 +137,5 @@ export function useWorkspace(): UseWorkspaceReturn {
     setError(null)
   }, [])
 
-  return { workspace, loading, error, create, load, update, remove, toggleSharing, clear }
+  return { workspace, loading, error, create, load, update, remove, removeById, toggleSharing, clear }
 }

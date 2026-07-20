@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Workspace } from '@quickplot/types'
-import { getUserWorkspaces } from '../../lib/firestore'
+import { getUserWorkspaces } from '../../lib/db'
 
 interface UseWorkspaceListReturn {
   /** List of the user's workspaces (most recently updated first). */
@@ -11,6 +11,10 @@ interface UseWorkspaceListReturn {
   error: string | null
   /** Fetch/refresh the list for a given user ID. */
   fetchList: (uid: string) => Promise<void>
+  /** Remove a workspace from the local list immediately (optimistic UI). */
+  removeLocal: (id: string) => void
+  /** Add a workspace to the top of the local list immediately (optimistic UI). */
+  addLocal: (ws: Workspace) => void
 }
 
 /**
@@ -36,5 +40,13 @@ export function useWorkspaceList(): UseWorkspaceListReturn {
     }
   }, [])
 
-  return { workspaces, loading, error, fetchList }
+  const removeLocal = useCallback((id: string) => {
+    setWorkspaces(prev => prev.filter(w => w.id !== id))
+  }, [])
+
+  const addLocal = useCallback((ws: Workspace) => {
+    setWorkspaces(prev => [ws, ...prev])
+  }, [])
+
+  return { workspaces, loading, error, fetchList, removeLocal, addLocal }
 }

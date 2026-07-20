@@ -3,6 +3,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import { AuthButton } from './features/auth'
+import { WorkspacePanel } from './features/workspace'
 import './App.css'
 
 function App() {
@@ -21,6 +22,8 @@ function App() {
       <h2>My App</h2>
       <AuthButton />
     </header>
+
+      <WorkspacePanel />
 
       <section id="center">
         <div className="hero">
