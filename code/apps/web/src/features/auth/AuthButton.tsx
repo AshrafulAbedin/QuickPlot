@@ -4,7 +4,7 @@ export function AuthButton() {
   const { user, loading, signIn, signOut } = useAuth()
 
   if (loading) {
-    return <span className="text-sm text-gray-400">Loading…</span>
+    return <span className="text-sm text-gray-400">Loading...</span>
   }
 
   if (user) {

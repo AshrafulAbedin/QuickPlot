@@ -3,25 +3,14 @@ import type { Workspace } from '@quickplot/types'
 import { getUserWorkspaces } from '../../lib/db'
 
 interface UseWorkspaceListReturn {
-  /** List of the user's workspaces (most recently updated first). */
   workspaces: Workspace[]
-  /** Loading state. */
   loading: boolean
-  /** Last error, or null. */
   error: string | null
-  /** Fetch/refresh the list for a given user ID. */
   fetchList: (uid: string) => Promise<void>
-  /** Remove a workspace from the local list immediately (optimistic UI). */
   removeLocal: (id: string) => void
-  /** Add a workspace to the top of the local list immediately (optimistic UI). */
   addLocal: (ws: Workspace) => void
 }
 
-/**
- * Hook for listing a user's saved workspaces.
- *
- * Call `fetchList(uid)` after auth is confirmed to populate the list.
- */
 export function useWorkspaceList(): UseWorkspaceListReturn {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [loading, setLoading] = useState(false)

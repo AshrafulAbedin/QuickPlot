@@ -9,33 +9,18 @@ import {
 } from '../../lib/db'
 
 interface UseWorkspaceReturn {
-  /** The currently loaded workspace, or null. */
   workspace: Workspace | null
-  /** Loading state for any async operation. */
   loading: boolean
-  /** Last error message, or null. */
   error: string | null
-  /** Create a new workspace and set it as current. */
   create: (input: CreateWorkspaceInput) => Promise<Workspace | null>
-  /** Load a workspace by ID and set it as current. */
   load: (id: string) => Promise<void>
-  /** Update the current workspace. */
   update: (updates: UpdateWorkspaceInput) => Promise<void>
-  /** Delete the current workspace and clear it. */
   remove: () => Promise<void>
-  /** Delete any workspace by ID (clears active if it matches). Returns true on success. */
   removeById: (id: string) => Promise<boolean>
-  /** Toggle sharing and return the shareId (or null if disabled). */
   toggleSharing: (shared: boolean) => Promise<string | null>
-  /** Clear the current workspace from state (does not delete from DB). */
   clear: () => void
 }
 
-/**
- * Hook for managing a single workspace — create, load, update, delete, share.
- *
- * Does NOT manage the workspace list. See useWorkspaceList for that.
- */
 export function useWorkspace(): UseWorkspaceReturn {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [loading, setLoading] = useState(false)
@@ -105,7 +90,6 @@ export function useWorkspace(): UseWorkspaceReturn {
     setError(null)
     try {
       await deleteWs(id)
-      // Clear the active workspace only if it's the one we just deleted.
       setWorkspace(prev => (prev?.id === id ? null : prev))
       return true
     } catch (e) {

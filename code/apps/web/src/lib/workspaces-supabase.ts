@@ -11,9 +11,6 @@ import type {
 
 const TABLE = 'workspaces'
 
-// ─── Row <-> Domain mapping ──────────────────────────────────────────────────
-// Postgres columns are snake_case; the domain type is camelCase.
-
 interface WorkspaceRow {
   id: string
   owner_id: string
@@ -44,7 +41,6 @@ function rowToWorkspace(r: WorkspaceRow): Workspace {
   }
 }
 
-/** Generate a short share ID (8 chars, URL-safe). */
 function generateShareId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
@@ -53,8 +49,6 @@ function generateShareId(): string {
   }
   return result
 }
-
-// ─── CRUD Operations (same signatures as lib/firestore.ts) ───────────────────
 
 export async function createWorkspace(
   input: CreateWorkspaceInput,
@@ -94,7 +88,6 @@ export async function updateWorkspace(
   id: string,
   updates: UpdateWorkspaceInput,
 ): Promise<void> {
-  // Map only the provided camelCase fields to their snake_case columns.
   const row: Record<string, unknown> = {}
   if (updates.title !== undefined) row.title = updates.title
   if (updates.equations !== undefined) row.equations = updates.equations
@@ -103,7 +96,6 @@ export async function updateWorkspace(
   if (updates.theme !== undefined) row.theme = updates.theme
   if (updates.shared !== undefined) row.shared = updates.shared
   if (updates.shareId !== undefined) row.share_id = updates.shareId
-  // updated_at is maintained by a Postgres trigger.
 
   const { error } = await supabase.from(TABLE).update(row).eq('id', id)
   if (error) throw new Error(error.message)

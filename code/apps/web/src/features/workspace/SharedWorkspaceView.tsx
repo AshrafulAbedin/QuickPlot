@@ -9,28 +9,18 @@ const TYPE_LABELS: Record<EquationEntry['type'], string> = {
   points: 'points',
 }
 
-/**
- * Read-only view of a publicly-shared workspace, reached via /shared/:shareId.
- *
- * Renders the workspace metadata and equations. Once the canvas renderer
- * (packages/renderer) is merged, this is where <Canvas2D> would be embedded
- * to draw the actual curves.
- */
 export function SharedWorkspaceView({ shareId }: { shareId: string }) {
   const { workspace, status, error } = useSharedWorkspace(shareId)
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f17', color: '#e0e0e0', padding: '40px 20px' }}>
       <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-        <a
-          href="/"
-          style={{ color: '#4a9ee0', fontSize: '14px', textDecoration: 'none' }}
-        >
+        <a href="/" style={{ color: '#4a9ee0', fontSize: '14px', textDecoration: 'none' }}>
           &larr; QuickPlot
         </a>
 
         {status === 'loading' && (
-          <p style={{ marginTop: '40px', color: '#888' }}>Loading shared workspace…</p>
+          <p style={{ marginTop: '40px', color: '#888' }}>Loading shared workspace...</p>
         )}
 
         {status === 'not-found' && (
@@ -71,7 +61,6 @@ export function SharedWorkspaceView({ shareId }: { shareId: string }) {
               Last updated {new Date(workspace.updatedAt).toLocaleString()}
             </p>
 
-            {/* Equations */}
             <h2 style={{ fontSize: '13px', letterSpacing: '0.1em', color: '#888', marginTop: '28px' }}>
               EQUATIONS
             </h2>
@@ -114,7 +103,6 @@ export function SharedWorkspaceView({ shareId }: { shareId: string }) {
               </div>
             )}
 
-            {/* Viewport */}
             <h2 style={{ fontSize: '13px', letterSpacing: '0.1em', color: '#888', marginTop: '28px' }}>
               VIEWPORT
             </h2>
@@ -125,9 +113,7 @@ export function SharedWorkspaceView({ shareId }: { shareId: string }) {
 
             <p style={{ marginTop: '40px', color: '#666', fontSize: '13px' }}>
               Want to build your own?{' '}
-              <a href="/" style={{ color: '#4a9ee0' }}>
-                Open QuickPlot
-              </a>
+              <a href="/" style={{ color: '#4a9ee0' }}>Open QuickPlot</a>
             </p>
           </div>
         )}

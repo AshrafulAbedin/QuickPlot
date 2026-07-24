@@ -5,12 +5,6 @@ import { useWorkspaceList } from './useWorkspaceList'
 import { downloadWorkspace, parseWorkspaceJson } from '../../lib/workspace-io'
 import type { CreateWorkspaceInput, Workspace } from '@quickplot/types'
 
-/**
- * Minimal workspace panel — save, list, load, delete, share, export/import.
- *
- * Currently saves empty equation sets since the canvas isn't wired yet.
- * Once integrated with the equation state, pass equations/viewport/sliders in.
- */
 export function WorkspacePanel() {
   const { user } = useAuth()
   const { workspace, create, load, removeById, toggleSharing, loading, error } = useWorkspace()
@@ -56,39 +50,37 @@ export function WorkspacePanel() {
     if (!ok) fetchList(user!.uid)
   }
 
-  // ── sharing ──
   function shareUrlFor(shareId: string) {
     return `${window.location.origin}/shared/${shareId}`
   }
+
   async function copyToClipboard(url: string) {
     setShareUrl(url)
     try { await navigator.clipboard.writeText(url) } catch { /* shown on screen */ }
   }
+
   async function handleShare() {
     if (!workspace) return
     const shareId = await toggleSharing(true)
     if (shareId) await copyToClipboard(shareUrlFor(shareId))
   }
+
   async function handleCopyLink() {
     if (!workspace?.shareId) return
     await copyToClipboard(shareUrlFor(workspace.shareId))
   }
-  async function handleUnshare() {
-    if (!workspace) return
-    await toggleSharing(false)
-    setShareUrl(null)
-  }
 
-  // ── export / import ──
   function handleExport() {
     if (workspace) downloadWorkspace(workspace)
   }
+
   function handleImportClick() {
     fileInputRef.current?.click()
   }
+
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    e.target.value = '' // allow re-importing the same file
+    e.target.value = ''
     if (!file) return
     try {
       const text = await file.text()
@@ -139,7 +131,6 @@ export function WorkspacePanel() {
 
       {error && <p className="text-xs text-red-400">{error}</p>}
 
-      {/* Active workspace */}
       {workspace && (
         <div className="p-2 rounded bg-neutral-700/50 border border-neutral-600">
           <p className="text-xs text-neutral-300">
@@ -147,10 +138,7 @@ export function WorkspacePanel() {
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
             {workspace.shared ? (
-              <>
-                <button onClick={handleCopyLink} className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400 hover:bg-green-600/30">Copy link</button>
-                <button onClick={handleUnshare} disabled={loading} className="text-xs px-2 py-1 rounded bg-neutral-600/40 text-neutral-300 hover:bg-neutral-600/60 disabled:opacity-50">Stop sharing</button>
-              </>
+              <button onClick={handleCopyLink} className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400 hover:bg-green-600/30">Copy link</button>
             ) : (
               <button onClick={handleShare} disabled={loading} className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400 hover:bg-green-600/30 disabled:opacity-50">Share</button>
             )}
@@ -163,7 +151,6 @@ export function WorkspacePanel() {
         </div>
       )}
 
-      {/* List */}
       <div className="space-y-1">
         {listLoading && <p className="text-xs text-neutral-500">Loading...</p>}
         {workspaces.map(ws => (

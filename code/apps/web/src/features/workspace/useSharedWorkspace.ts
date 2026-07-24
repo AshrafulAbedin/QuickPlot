@@ -10,12 +10,6 @@ interface UseSharedWorkspaceReturn {
   error: string | null
 }
 
-/**
- * Fetches a publicly-shared workspace by its shareId.
- *
- * Does NOT require authentication — shared workspaces are public-read
- * (enforced by Firestore security rules).
- */
 export function useSharedWorkspace(shareId: string): UseSharedWorkspaceReturn {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [status, setStatus] = useState<SharedStatus>('loading')
