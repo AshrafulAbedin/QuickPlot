@@ -1,16 +1,14 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react'
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  type User,
-} from 'firebase/auth'
-import { auth, googleProvider } from '../../lib/firebase'
+import { type User } from 'firebase/auth'
+import authService from '../../lib/authService'
 
 export interface AuthContextValue {
   user: User | null
   loading: boolean
-  signIn: () => Promise<void>
+  error: Error | null
+  login: (email: string, password: string) => Promise<void>
+  loginWithGoogle: () => Promise<void>
+  register: (email: string, password: string, fullName: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -19,21 +17,52 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = authService.onAuthChange((currentUser) => {
       setUser(currentUser)
       setLoading(false)
     })
     return unsubscribe
   }, [])
 
-  async function handleSignIn() {
-    await signInWithPopup(auth, googleProvider)
+  async function login(email: string, password: string) {
+    setError(null)
+    try {
+      await authService.login({ email, password })
+    } catch (err) {
+      const error = err as Error
+      setError(error)
+      throw error
+    }
+  }
+
+  async function loginWithGoogle() {
+    setError(null)
+    try {
+      await authService.loginWithGoogle()
+    } catch (err) {
+      const error = err as Error
+      setError(error)
+      throw error
+    }
+  }
+
+  async function register(email: string, password: string, fullName: string) {
+    setError(null)
+    try {
+      await authService.register({ email, password, fullName })
+    } catch (err) {
+      const error = err as Error
+      setError(error)
+      throw error
+    }
   }
 
   async function handleSignOut() {
-    await signOut(auth)
+    await authService.logout()
+    setUser(null)
   }
 
   return (
@@ -41,7 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
-        signIn: handleSignIn,
+        error,
+        login,
+        loginWithGoogle,
+        register,
         signOut: handleSignOut,
       }}
     >

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { AuthButton } from './features/auth'
 import { WorkspacePanel } from './features/workspace'
 
@@ -62,7 +63,7 @@ function FeatureCard({ title, body }: { title: string; body: string }) {
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2">
+    <Link to="/" className="flex items-center gap-2">
       <svg width="26" height="26" viewBox="0 0 26 26" className="shrink-0" aria-hidden="true">
         <rect x="1" y="1" width="24" height="24" rx="6" fill="#0a0a0f" stroke="#fbbf24" strokeWidth="1.5" />
         <path d="M3 20 Q9 4 13 13 T23 6" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" />
@@ -70,7 +71,7 @@ function Logo() {
       <span className="font-semibold tracking-tight text-neutral-100">
         Quick<span className="text-amber-400">Plot</span>
       </span>
-    </div>
+    </Link>
   )
 }
 
