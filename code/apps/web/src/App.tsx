@@ -145,7 +145,7 @@ export default function App() {
       <footer className="mt-auto border-t border-neutral-800">
         <div className="mx-auto max-w-6xl px-5 py-6 flex items-center justify-between text-xs text-neutral-500">
           <Logo />
-          <span>If you like QuickPlot, Please share with your friends</span>
+          <span>khali merge ta baki taratari kor</span>
         </div>
       </footer>
     </div>

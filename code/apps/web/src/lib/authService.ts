@@ -5,6 +5,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile as updateFirebaseProfile,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   type User,
 } from 'firebase/auth'
 import { auth, googleProvider } from './firebase'
@@ -76,6 +77,13 @@ function getCurrentUser(): User | null {
   return auth.currentUser
 }
 
+/**
+ * Send password reset email to the user
+ */
+async function sendPasswordResetEmail(email: string): Promise<void> {
+  await firebaseSendPasswordResetEmail(auth, email)
+}
+
 const authService = {
   register,
   login,
@@ -83,7 +91,8 @@ const authService = {
   logout,
   onAuthChange,
   getCurrentUser,
+  sendPasswordResetEmail,
 }
 
 export default authService
-export { register, login, loginWithGoogle, logout, onAuthChange, getCurrentUser }
+export { register, login, loginWithGoogle, logout, onAuthChange, getCurrentUser, sendPasswordResetEmail }
