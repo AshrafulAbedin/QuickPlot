@@ -3,6 +3,7 @@ import App from './App'
 import { SharedWorkspaceView } from './features/workspace'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
 
 export function AppRouter() {
   return (
@@ -11,6 +12,7 @@ export function AppRouter() {
         <Route path="/" element={<App />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/shared/:shareId" element={<SharedWorkspaceViewWrapper />} />
       </Routes>
     </BrowserRouter>
