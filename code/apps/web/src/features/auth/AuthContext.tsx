@@ -10,7 +10,6 @@ export interface AuthContextValue {
   loginWithGoogle: () => Promise<void>
   register: (email: string, password: string, fullName: string) => Promise<void>
   signOut: () => Promise<void>
-  resetPassword: (email: string) => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -66,17 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  async function resetPassword(email: string) {
-    setError(null)
-    try {
-      await authService.sendPasswordResetEmail(email)
-    } catch (err) {
-      const error = err as Error
-      setError(error)
-      throw error
-    }
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -87,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         register,
         signOut: handleSignOut,
-        resetPassword,
       }}
     >
       {children}

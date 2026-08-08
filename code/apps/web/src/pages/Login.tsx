@@ -123,17 +123,9 @@ export default function Login() {
             </div>
 
             <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="block text-xs font-medium text-neutral-400">
-                  Password
-                </label>
-                <Link 
-                  to="/forgot-password" 
-                  className="text-xs text-amber-400 hover:text-amber-300"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3 h-4 w-4 text-neutral-500" />
                 <input
