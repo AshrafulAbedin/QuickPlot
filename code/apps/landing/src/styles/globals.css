@@ -1,0 +1,269 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: #1c1a17;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  /* Springy easing curve — overshoots to ~1.37 then settles. `linear()` gives
+     a real spring shape that no single cubic-bezier can express. */
+  --anim-elastic: linear(
+    0,
+    0.218 2.1%,
+    0.862 6.5%,
+    1.114,
+    1.296 10.7%,
+    1.346,
+    1.37 12.9%,
+    1.373,
+    1.364 14.5%,
+    1.315 16.2%,
+    1.032 21.8%,
+    0.941 24%,
+    0.891 25.9%,
+    0.877,
+    0.869 27.8%,
+    0.87,
+    0.882 30.7%,
+    0.907 32.4%,
+    0.981 36.4%,
+    1.012 38.3%,
+    1.036,
+    1.046 42.7% 44.1%,
+    1.042 45.7%,
+    0.996 53.3%,
+    0.988,
+    0.984 57.5%,
+    0.985 60.7%,
+    1.001 68.1%,
+    1.006 72.2%,
+    0.998 86.7%,
+    1
+  );
+  --spark-curve: cubic-bezier(0.18, 0.68, 0.22, 1);
+}
+
+@layer components {
+  /* ---------------------------------------------------------------------
+     Rotating word. Every option sits in the same grid cell; the hidden ones
+     reserve the width of the longest so the line never reflows. `overflow:
+     clip` is what makes the swap read as a slot-machine roll rather than a
+     fade — the incoming word is hidden until it rises into the cell.
+     --------------------------------------------------------------------- */
+  .jumpy-list {
+    vertical-align: baseline;
+    display: inline-grid;
+    overflow: clip;
+  }
+
+  .jumpy-list-item,
+  .jumpy-list-measure {
+    grid-area: 1 / 1;
+    justify-self: start;
+  }
+
+  .jumpy-list-measure {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .jumpy-list-item {
+    animation: jumpy-list-slide-top 0.8s var(--anim-elastic) both;
+  }
+
+  /* Wavy underline drawn as a repeating SVG wave, then scrolled sideways by
+     exactly one tile so the loop is seamless. */
+  .wavy-underline {
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='4' viewBox='0 0 12 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 2Q3 0 6 2T12 2' fill='none' stroke='%23f59e0b' stroke-width='1.25' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-position: 0 calc(100% - 0.02em);
+    background-repeat: repeat-x;
+    background-size: 0.75em 0.25em;
+    padding-bottom: 0.08em;
+    text-decoration: none;
+  }
+
+  .text-glow-amber {
+    animation: text-glow-amber 2s ease-in-out forwards;
+  }
+
+  /* Ember particles thrown off the accent word. */
+  .sparks {
+    display: inline-block;
+    position: relative;
+    overflow: visible;
+  }
+
+  .sparks__layer {
+    z-index: 10;
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+  }
+
+  .sparks__spark {
+    left: var(--x);
+    top: var(--y);
+    width: var(--width);
+    height: var(--height);
+    pointer-events: none;
+    display: block;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    animation: sparks-fly-away var(--duration) forwards var(--spark-curve);
+  }
+
+  .sparks__shape {
+    transform-origin: 50%;
+    border-radius: 999px;
+    display: block;
+    position: absolute;
+    inset: 0;
+    animation: sparks-ember-burn-out var(--duration) forwards ease-out;
+  }
+
+  /* ---------------------------------------------------------------------
+     Pressable button. At rest the face floats 6px above its base; hover
+     lifts it to 8px, pressing sinks it 5px onto the base.
+     --------------------------------------------------------------------- */
+  .btn-emboss {
+    --emboss-base: #000;
+    box-shadow: 0 6px 0 var(--emboss-base);
+    transition:
+      transform 0.1s ease-in-out,
+      box-shadow 0.1s ease-in-out,
+      background-color 0.1s ease-in-out;
+  }
+
+  .btn-emboss:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 var(--emboss-base);
+  }
+
+  .btn-emboss:active {
+    transform: translateY(5px);
+    box-shadow: 0 1px 0 var(--emboss-base);
+  }
+
+  /* Graph-paper texture for the light launcher panel. */
+  .graph-paper {
+    background-image:
+      linear-gradient(to right, rgba(122, 113, 96, 0.09) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(122, 113, 96, 0.09) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+}
+
+@keyframes jumpy-list-slide-top {
+  0% {
+    transform: translateY(0.35em);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes wavy-underline-hover {
+  to {
+    background-position: 0.75em calc(100% - 0.02em);
+  }
+}
+
+/* Settles on amber rather than the reference's red — red reads as an error
+   state next to a graph. */
+@keyframes text-glow-amber {
+  0% {
+    color: currentColor;
+    text-shadow: none;
+  }
+  90% {
+    color: #fbbf24;
+    text-shadow:
+      0 0 4px rgba(245, 158, 11, 0.35),
+      0 0 20px rgba(245, 158, 11, 0.45);
+  }
+  to {
+    color: #f59e0b;
+    text-shadow:
+      0 0 4px rgba(245, 158, 11, 0.35),
+      0 0 20px rgba(245, 158, 11, 0.45);
+  }
+}
+
+@keyframes sparks-fly-away {
+  to {
+    transform: translate(
+        calc(-50% + cos(var(--angle)) * var(--distance)),
+        calc(-50% + sin(var(--angle)) * var(--distance))
+      )
+      rotate(var(--rotation));
+  }
+}
+
+@keyframes sparks-ember-burn-out {
+  0% {
+    opacity: 1;
+    background: #fff;
+    transform: scale(1);
+    box-shadow: 0 0 8px #ffffffe6;
+  }
+  38% {
+    opacity: 1;
+    background: #ff901a;
+    transform: scale(0.9);
+    box-shadow: 0 0 10px #ff901acc;
+  }
+  72% {
+    opacity: 0.72;
+    background: #82170d;
+    transform: scale(0.65);
+    box-shadow: 0 0 4px #82170d80;
+  }
+  to {
+    opacity: 0;
+    background: #340909;
+    transform: scale(0.15);
+    box-shadow: 0 0 #0000;
+  }
+}
+
+/* Honour the OS "reduce motion" setting: keep the final frame, drop the
+   movement. Matches the reference, which gates the looping effects the
+   same way. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .sparks__layer {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wavy-underline {
+    animation: wavy-underline-hover 0.45s linear infinite;
+  }
+}

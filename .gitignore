@@ -16,3 +16,4 @@ build/
 .env.local
 *.env.local
 C:\Users\ASUS\Desktop\QuickPlot\docs\Design\ERD_and_Wireframe.md
+.gstack/

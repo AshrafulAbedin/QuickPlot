@@ -143,19 +143,26 @@ export default function App() {
     const cartesian = equations.filter(
       eq => eq.visible && eq.type === 'cartesian' && !eq.error && eq.expression.trim(),
     );
-    for (const eq of cartesian) {
+    // Compile each expression once. Building the evaluator inside the sampling
+    // callback would re-parse it on every one of the thousands of probes the
+    // root/extremum search makes.
+    const compiled = cartesian.map(eq => {
       try {
-        const fn = (x: number) => parseWithScope(eq.expression)({ ...sliderScope, x });
+        const f = parseWithScope(eq.expression);
+        return { eq, fn: (x: number) => f({ ...sliderScope, x }) };
+      } catch { return null; }
+    }).filter((c): c is { eq: typeof cartesian[number]; fn: (x: number) => number } => c !== null);
+
+    for (const { eq, fn } of compiled) {
+      try {
         findRoots(fn, -RANGE, RANGE).forEach(p => pts.push({ ...p, kind: 'root', color: eq.color }));
         findExtrema(fn, -RANGE, RANGE).forEach(p => pts.push({ ...p, kind: 'extremum', color: eq.color }));
       } catch { /* skip */ }
     }
-    for (let i = 0; i < cartesian.length; i++) {
-      for (let j = i + 1; j < cartesian.length; j++) {
+    for (let i = 0; i < compiled.length; i++) {
+      for (let j = i + 1; j < compiled.length; j++) {
         try {
-          const f1 = (x: number) => parseWithScope(cartesian[i].expression)({ ...sliderScope, x });
-          const f2 = (x: number) => parseWithScope(cartesian[j].expression)({ ...sliderScope, x });
-          findIntersections(f1, f2, -RANGE, RANGE).forEach(p =>
+          findIntersections(compiled[i].fn, compiled[j].fn, -RANGE, RANGE).forEach(p =>
             pts.push({ ...p, kind: 'intersection', color: '#ffffff' }),
           );
         } catch { /* skip */ }

@@ -1,12 +1,12 @@
 {
-  "name": "web",
+  "name": "@quickplot/2d",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "vitest run --passWithNoTests",
     "lint": "eslint src"
   },
   "dependencies": {
