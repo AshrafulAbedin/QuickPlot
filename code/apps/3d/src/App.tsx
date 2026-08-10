@@ -90,7 +90,7 @@ export default function App() {
   return (
     <div className="flex flex-col h-full bg-neutral-900">
       {/* ── header ── */}
-      <header className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-neutral-700 shrink-0">
+      <header className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-[#161412] shrink-0">
         <span className="font-pixel text-amber-400 text-sm tracking-widest">QuickPlot</span>
         <span className="font-pixel text-neutral-500 text-sm">/&nbsp;3D</span>
         <div className="ml-auto flex items-center gap-3">
@@ -149,6 +149,16 @@ export default function App() {
             )}
           </div>
 
+          {/* switch to 2D */}
+          <a
+            title="Switch to 2D"
+            href={import.meta.env.VITE_URL_2D ?? 'http://localhost:5174'}
+            className="font-pixel text-neutral-500 hover:text-amber-400 text-xs transition-colors flex items-center gap-1.5"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden focusable="false"><path d="M4 20V4M4 20h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M4 15c3 0 3.5-7 6.5-7S14 17 17 17s3-5 3-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+            2D
+          </a>
+
           {/* reset view */}
           <button
             title="Reset camera"
@@ -174,12 +184,12 @@ export default function App() {
 
         {/* ── sidebar ── */}
         <aside className={[
-          'relative shrink-0 bg-neutral-800 border-l border-neutral-700 flex flex-col',
+          'relative shrink-0 bg-neutral-800 border-l border-[#161412] flex flex-col',
           'transition-[width] duration-200',
           sidebarOpen ? 'w-60 overflow-y-auto' : 'w-7 overflow-hidden',
         ].join(' ')}>
 
-          <div className="sticky top-0 z-20 bg-neutral-800 border-b border-neutral-700/60 shrink-0">
+          <div className="sticky top-0 z-20 bg-neutral-800 border-b border-[#161412]/60 shrink-0">
             <button
               onClick={() => setSidebarOpen(v => !v)}
               title={sidebarOpen ? 'Collapse panel' : 'Expand panel'}
@@ -217,7 +227,7 @@ export default function App() {
             </div>
 
             {/* examples */}
-            <div className="px-3 pt-1 pb-3 border-t border-neutral-700">
+            <div className="px-3 pt-1 pb-3 border-t border-[#161412]">
               <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-2 mt-2">EXAMPLES</p>
               <div className="flex flex-wrap gap-1">
                 {EXAMPLES.map(ex => (
@@ -233,7 +243,7 @@ export default function App() {
             </div>
 
             {/* shortcuts */}
-            <div className="px-3 pt-1 pb-2 border-t border-neutral-700 mt-auto">
+            <div className="px-3 pt-1 pb-2 border-t border-[#161412] mt-auto">
               <button
                 onClick={() => setShowShortcuts(v => !v)}
                 className="w-full flex items-center justify-between mt-2 mb-1 group"
@@ -255,7 +265,7 @@ export default function App() {
                   ] as [string, string][]).map(([key, desc], i, arr) => (
                     <div
                       key={key}
-                      className={['flex items-center justify-between px-2.5 py-1.5 text-[10px]', i < arr.length - 1 ? 'border-b border-neutral-700/60' : ''].join(' ')}
+                      className={['flex items-center justify-between px-2.5 py-1.5 text-[10px]', i < arr.length - 1 ? 'border-b border-[#161412]/60' : ''].join(' ')}
                     >
                       <span className="font-pixel text-amber-400/80">{key}</span>
                       <span className="font-mono text-neutral-300">{desc}</span>
@@ -266,7 +276,7 @@ export default function App() {
             </div>
 
             {/* share */}
-            <div className="px-3 pt-1 pb-3 border-t border-neutral-700">
+            <div className="px-3 pt-1 pb-3 border-t border-[#161412]">
               <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-2 mt-2">SHARE</p>
               <div className="flex gap-2">
                 <button

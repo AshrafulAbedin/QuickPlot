@@ -223,7 +223,7 @@ export default function App() {
   return (
     <div className="flex flex-col h-full bg-neutral-900">
       {/* ── header ── */}
-      <header className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-neutral-700 shrink-0">
+      <header className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-[#161412] shrink-0">
         <span className="font-pixel text-amber-400 text-sm tracking-widest">QuickPlot</span>
         <span className="font-pixel text-neutral-500 text-sm">/&nbsp;2D</span>
         <div className="ml-auto flex items-center gap-3">
@@ -268,6 +268,16 @@ export default function App() {
             )}
           </div>
 
+          {/* switch to 3D */}
+          <a
+            title="Switch to 3D"
+            href={import.meta.env.VITE_URL_3D ?? 'http://localhost:5175'}
+            className="font-pixel text-neutral-500 hover:text-amber-400 text-xs transition-colors flex items-center gap-1.5"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden focusable="false"><path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7L12 2.8Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 21.2V11.6M12 11.6 20.5 7M12 11.6 3.5 7" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+            3D
+          </a>
+
           {/* reset view */}
           <button
             title="Reset view (or double-click canvas)"
@@ -292,13 +302,13 @@ export default function App() {
 
         {/* ── sidebar ── */}
         <aside className={[
-          'relative shrink-0 bg-neutral-800 border-l border-neutral-700 flex flex-col',
+          'relative shrink-0 bg-neutral-800 border-l border-[#161412] flex flex-col',
           'transition-[width] duration-200',
           sidebarOpen ? 'w-60 overflow-y-auto' : 'w-7 overflow-hidden',
         ].join(' ')}>
 
           {/* ── collapse / expand toggle ── */}
-          <div className="sticky top-0 z-20 bg-neutral-800 border-b border-neutral-700/60 shrink-0">
+          <div className="sticky top-0 z-20 bg-neutral-800 border-b border-[#161412]/60 shrink-0">
             <button
               onClick={() => setSidebarOpen(v => !v)}
               title={sidebarOpen ? 'Collapse panel' : 'Expand panel'}
@@ -357,7 +367,7 @@ export default function App() {
             />
 
             {/* manual point input */}
-            <div className="px-3 pt-1 pb-3 border-t border-neutral-700">
+            <div className="px-3 pt-1 pb-3 border-t border-[#161412]">
               <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-2 mt-2">ADD POINT</p>
               <div className="flex items-center gap-1">
                 <span className="text-neutral-600 text-xs font-mono">(</span>
@@ -390,7 +400,7 @@ export default function App() {
             </div>
 
             {/* data upload */}
-            <div className="px-3 pt-1 pb-3 border-t border-neutral-700">
+            <div className="px-3 pt-1 pb-3 border-t border-[#161412]">
               <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-2 mt-2">DATA</p>
               <input
                 ref={fileInputRef}
@@ -408,7 +418,7 @@ export default function App() {
             </div>
 
             {/* shortcuts */}
-            <div className="px-3 pt-1 pb-2 border-t border-neutral-700 mt-auto">
+            <div className="px-3 pt-1 pb-2 border-t border-[#161412] mt-auto">
               <button
                 onClick={() => setShowShortcuts(v => !v)}
                 className="w-full flex items-center justify-between mt-2 mb-1 group"
@@ -433,7 +443,7 @@ export default function App() {
                       key={key}
                       className={[
                         'flex items-center justify-between px-2.5 py-1.5 text-[10px]',
-                        i < arr.length - 1 ? 'border-b border-neutral-700/60' : '',
+                        i < arr.length - 1 ? 'border-b border-[#161412]/60' : '',
                       ].join(' ')}
                     >
                       <span className="font-pixel text-amber-400/80">{key}</span>
@@ -445,7 +455,7 @@ export default function App() {
             </div>
 
             {/* share */}
-            <div className="px-3 pt-1 pb-3 border-t border-neutral-700">
+            <div className="px-3 pt-1 pb-3 border-t border-[#161412]">
               <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-2 mt-2">SHARE</p>
               <div className="flex gap-2">
                 <button

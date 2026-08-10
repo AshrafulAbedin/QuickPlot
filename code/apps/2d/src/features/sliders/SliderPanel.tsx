@@ -24,7 +24,7 @@ export function SliderPanel({ sliders, onChange, onRangeChange, animating, onTog
   if (!names.length) return null;
 
   return (
-    <div className="px-3 pt-1 pb-3 border-t border-neutral-700">
+    <div className="px-3 pt-1 pb-3 border-t border-[#161412]">
       <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-3 mt-2">PARAMETERS</p>
 
       <div className="space-y-3">

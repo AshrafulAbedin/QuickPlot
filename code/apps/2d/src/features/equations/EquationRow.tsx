@@ -71,7 +71,7 @@ export function EquationRow({ entry, autoFocus, onChange, onDelete, onTrace, isT
   const colorRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="space-y-1 pb-2 border-b border-neutral-700/50 last:border-0">
+    <div className="space-y-1 pb-2 border-b border-[#161412]/50 last:border-0">
       {/* row 1: color + type + actions + delete */}
       <div className="flex items-center gap-1.5">
         {/* color swatch */}
