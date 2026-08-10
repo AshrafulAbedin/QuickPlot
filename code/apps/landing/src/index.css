@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#141312] text-white antialiased m-0 p-0 overflow-hidden font-sans select-none;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes waveDraw {
+  0% {
+    stroke-dashoffset: 120;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes floatOrb {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(25px, -30px);
+  }
+}
+
+.animate-fade-in-1 {
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-2 {
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-3 {
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+  opacity: 0;
+}
+
+.animate-wave-line {
+  stroke-dasharray: 120;
+  animation: waveDraw 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.4s forwards;
+}
+
+.glow-orb-1 {
+  animation: pulseGlow 8s ease-in-out infinite, floatOrb 14s ease-in-out infinite;
+}
+
+.glow-orb-2 {
+  animation: pulseGlow 10s ease-in-out 2s infinite, floatOrb 18s ease-in-out 3s infinite reverse;
+}

@@ -1,0 +1,13 @@
+{
+  "name": "quickplot",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter @quickplot/landing --filter @quickplot/2d --filter @quickplot/3d dev",
+    "dev:2d": "pnpm --filter @quickplot/2d dev",
+    "dev:3d": "pnpm --filter @quickplot/3d dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "dev:landing": "pnpm --filter @quickplot/landing dev"
+  }
+}
