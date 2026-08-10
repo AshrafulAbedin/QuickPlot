@@ -24,7 +24,8 @@ import { DEFAULT_THEME } from '@quickplot/renderer';
 // ── URL hash codec ────────────────────────────────────────────────────────
 interface HashPayload {
   eqs: Array<{ e: string; ey?: string; t: EquationType; c: string; v: boolean; mn: number; mx: number }>;
-  sliders?: Record<string, { value: number; min: number; max: number; step: number }>;
+  // `sp` (animation speed) is optional so links shared before it existed still load.
+  sliders?: Record<string, { value: number; min: number; max: number; step: number; sp?: number }>;
 }
 
 const PALETTE = [
@@ -42,7 +43,10 @@ function encodeHash(
       .filter(e => e.type !== 'points')
       .map(e => ({ e: e.expression, ey: e.expressionY, t: e.type, c: e.color, v: e.visible, mn: e.tMin, mx: e.tMax })),
     sliders: Object.fromEntries(
-      Object.values(sliders).map(s => [s.name, { value: s.value, min: s.min, max: s.max, step: s.step }]),
+      Object.values(sliders).map(s => [
+        s.name,
+        { value: s.value, min: s.min, max: s.max, step: s.step, sp: s.speed ?? 1 },
+      ]),
     ),
   };
   return btoa(encodeURIComponent(JSON.stringify(payload)));
@@ -70,7 +74,7 @@ function loadFromHash(): { equations: ReturnType<typeof useEquations>['equations
     const sliders: Record<string, Slider> = {};
     if (payload.sliders) {
       for (const [name, s] of Object.entries(payload.sliders)) {
-        sliders[name] = { name, value: s.value, min: s.min, max: s.max, step: s.step };
+        sliders[name] = { name, value: s.value, min: s.min, max: s.max, step: s.step, speed: s.sp ?? 1 };
       }
     }
     return { equations, sliders };
@@ -86,8 +90,11 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { equations, update, add, remove, addPoints } = useEquations(_fromHash?.equations ?? DEFAULTS);
-  const { sliders, sliderScope, animating, onChange: sliderChange, onRangeChange: sliderRangeChange, toggleAnimation } =
-    useSliders(equations, _fromHash?.sliders);
+  const {
+    sliders, sliderScope, animating,
+    onChange: sliderChange, onRangeChange: sliderRangeChange,
+    onSpeedChange: sliderSpeedChange, toggleAnimation,
+  } = useSliders(equations, _fromHash?.sliders);
   const { activeTraces, traceSnap, startTrace } = useTraceAnimation();
 
   const [showSpecial,   setShowSpecial]   = useState(false);
@@ -364,6 +371,7 @@ export default function App() {
               onRangeChange={sliderRangeChange}
               animating={animating}
               onToggleAnimation={toggleAnimation}
+              onSpeedChange={sliderSpeedChange}
             />
 
             {/* manual point input */}

@@ -11,6 +11,7 @@ export default {
         // with Windows and macOS; Comic Neue is the webfont fallback so Linux
         // and Android get the same feel instead of a generic cursive.
         hand: ['"Comic Sans MS"', '"Comic Neue"', 'cursive'],
+        mono: ['"JetBrains Mono"', 'monospace'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {

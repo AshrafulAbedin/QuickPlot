@@ -11,6 +11,22 @@ function fmtVal(v: number): string {
   return v.toFixed(4).replace(/\.?0+$/, '');
 }
 
+function IconPlay() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden focusable="false">
+      <path d="M7 4l12 8-12 8V4z" />
+    </svg>
+  );
+}
+
+function IconPause() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden focusable="false">
+      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+    </svg>
+  );
+}
+
 interface Props {
   sliders: Record<string, Slider>;
   onChange: (name: string, value: number) => void;
@@ -48,7 +64,7 @@ export function SliderPanel({ sliders, onChange, onRangeChange, animating, onTog
                         isAnimating ? 'text-amber-400 hover:text-amber-300' : 'text-neutral-600 hover:text-neutral-400',
                       ].join(' ')}
                     >
-                      {isAnimating ? '⏸' : '▶'}
+                      {isAnimating ? <IconPause /> : <IconPlay />}
                     </button>
                   )}
                   <span className="text-neutral-300 text-xs font-mono">

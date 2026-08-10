@@ -56,11 +56,23 @@ export const SURFACE_THEMES: Record<string, SurfaceTheme> = {
 
 export const DEFAULT_SURFACE_THEME: SurfaceTheme = SURFACE_THEMES.dark;
 
-const GRID_SIZE = 50;
-const SEGMENTS  = 100;
+const GRID_SIZE = 60;
+const SEGMENTS  = 120;
+
+/** Side length of the plot volume. Domain is ±PLOT_SIZE / 2 on every axis. */
+export const PLOT_SIZE = GRID_SIZE;
+
+/** Half-extent — the domain runs from -PLOT_BOUND to +PLOT_BOUND. */
+export const PLOT_BOUND = GRID_SIZE / 2;
 
 export function buildSurfaceGeometry(
   fn: (x: number, y: number) => number,
+  /**
+   * Heights are clamped to this so a steep surface stays inside the bounding
+   * box instead of shooting past the camera. Matches how Desmos clips a graph
+   * at the edge of its viewing cube.
+   */
+  zLimit = PLOT_BOUND,
 ): THREE.BufferGeometry {
   const geo = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, SEGMENTS, SEGMENTS);
   const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -68,13 +80,25 @@ export function buildSurfaceGeometry(
     const x = pos.getX(i);
     const y = pos.getY(i);
     const z = fn(x, y);
-    pos.setZ(i, isFinite(z) ? z : 0);
+    // Non-finite (poles, log of a negative) flattens to 0, as before.
+    pos.setZ(i, isFinite(z) ? Math.max(-zLimit, Math.min(zLimit, z)) : 0);
   }
   pos.needsUpdate = true;
   geo.computeVertexNormals();
   return geo;
 }
 
-export function buildAxesHelper(length = GRID_SIZE / 2): THREE.AxesHelper {
+export function buildAxesHelper(length = PLOT_BOUND): THREE.AxesHelper {
   return new THREE.AxesHelper(length);
+}
+
+/**
+ * Wireframe cube framing the plot volume — the 12 edges only, no faces, so it
+ * reads as an axis frame rather than a solid that hides the surface.
+ */
+export function buildBoundingBox(size = GRID_SIZE): THREE.BufferGeometry {
+  const box = new THREE.BoxGeometry(size, size, size);
+  const edges = new THREE.EdgesGeometry(box);
+  box.dispose();
+  return edges;
 }
