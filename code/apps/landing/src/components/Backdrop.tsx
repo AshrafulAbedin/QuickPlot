@@ -20,7 +20,7 @@ export function Backdrop() {
         <path
           d="M0 460 C 100 300, 200 620, 300 460 S 500 300, 600 460 S 800 620, 900 460 S 1100 300, 1200 460"
           fill="none"
-          stroke="#F0A800"
+          stroke="#F3DCA6"
           strokeOpacity="0.16"
           strokeWidth="2.5"
         />

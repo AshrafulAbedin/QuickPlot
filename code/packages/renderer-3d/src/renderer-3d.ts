@@ -54,7 +54,7 @@ export const SURFACE_THEMES: Record<string, SurfaceTheme> = {
   },
 };
 
-export const DEFAULT_SURFACE_THEME: SurfaceTheme = SURFACE_THEMES.dark;
+export const DEFAULT_SURFACE_THEME: SurfaceTheme = SURFACE_THEMES.midnight;
 
 const GRID_SIZE = 60;
 const SEGMENTS  = 120;

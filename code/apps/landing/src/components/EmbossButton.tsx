@@ -7,7 +7,7 @@ export type EmbossVariant = 'primary' | 'dark' | 'paper';
  * face floats above and sinks onto. Depth and timing live in `.btn-emboss`.
  */
 const VARIANTS: Record<EmbossVariant, string> = {
-  primary: 'bg-amber-500 text-ink-900 hover:bg-amber-400 [--emboss-base:#9a6b00]',
+  primary: 'bg-amber-500 text-ink-900 hover:bg-amber-400 [--emboss-base:#b0800f]',
   dark: 'border border-white/10 bg-ink-600 text-neutral-100 hover:bg-ink-700 [--emboss-base:#100f0d]',
   paper: 'border border-paper-300 bg-white text-ink-900 hover:bg-paper-50 [--emboss-base:#D3C9B2]',
 };

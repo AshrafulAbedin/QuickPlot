@@ -15,20 +15,20 @@ import type { AuthIntent } from './lib/auth';
  */
 type LeftView = 'hero' | AuthIntent;
 
-const ROTATING_WORDS = ['seconds', 'one line', '2D & 3D', 'polar', 'real time'];
+const ROTATING_WORDS = ['seconds', 'one line', '2D & 3D', 'polar', 'real time','extension'];
 
 function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: AuthIntent) => void, onStartPlotting: () => void, showLauncher: boolean }) {
   const wordIndex = useWordCycle(ROTATING_WORDS.length);
 
   return (
     <div className="animate-rise flex w-full max-w-[420px] flex-col items-center">
-      <h1 className="text-center font-head text-[48px] font-bold leading-[1.15] tracking-tight sm:text-[64px]">
+      <h1 className="text-center font-head text-[56px] font-bold leading-[1.15] tracking-tight sm:text-[72px]">
         <span className="text-neutral-50">Quick</span>
         <span className="text-glow-amber text-amber-500">Plot</span>
       </h1>
 
       <p className="mt-6 text-center text-lg font-light leading-9 text-neutral-300 sm:text-xl">
-        Plot your <span className="wavy-underline">first</span> equation in{' '}
+        <b>Plot your <span className="wavy-underline">first</span> equation in</b> {' '}
         <Sparks trigger={wordIndex}>
           <JumpyWord
             words={ROTATING_WORDS}

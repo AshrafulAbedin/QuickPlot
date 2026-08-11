@@ -92,7 +92,7 @@ body {
   .wavy-underline {
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='4' viewBox='0 0 12 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 2Q3 0 6 2T12 2' fill='none' stroke='%23f59e0b' stroke-width='1.25' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='4' viewBox='0 0 12 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 2Q3 0 6 2T12 2' fill='none' stroke='%23fbbf24' stroke-width='1.25' stroke-linecap='round'/%3E%3C/svg%3E");
     background-position: 0 calc(100% - 0.02em);
     background-repeat: repeat-x;
     background-size: 0.75em 0.25em;
@@ -195,16 +195,16 @@ body {
     text-shadow: none;
   }
   90% {
-    color: #fbbf24;
+    color: #fcd34d;
     text-shadow:
-      0 0 4px rgba(245, 158, 11, 0.35),
-      0 0 20px rgba(245, 158, 11, 0.45);
+      0 0 4px rgba(251, 191, 36, 0.35),
+      0 0 20px rgba(251, 191, 36, 0.45);
   }
   to {
-    color: #f59e0b;
+    color: #fbbf24;
     text-shadow:
-      0 0 4px rgba(245, 158, 11, 0.35),
-      0 0 20px rgba(245, 158, 11, 0.45);
+      0 0 4px rgba(251, 191, 36, 0.35),
+      0 0 20px rgba(251, 191, 36, 0.45);
   }
 }
 

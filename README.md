@@ -31,7 +31,7 @@ pnpm install
 pnpm dev
 ```
 
-Then open **http://localhost:5173**.
+Then open **<http://localhost:5173>**.
 
 `pnpm dev` starts all three apps at once. If you only want one:
 
@@ -97,7 +97,7 @@ launchers on the light half.
 
 ## Project structure
 
-```
+```text
 QuickPlot/
 ├── code/                   # pnpm workspace root — run all commands from here
 │   ├── apps/
@@ -134,7 +134,7 @@ import { parseExpression } from '../../../packages/core/src';  // no
 
 The whole app is one data flow:
 
-```
+```text
 User types "y = sin(x)"
   → parser        compiles the string into a callable function   [packages/core/src/parser.ts]
   → toCurve()     wraps it into a PlotCurve                      [apps/2d/.../useEquations.ts]
