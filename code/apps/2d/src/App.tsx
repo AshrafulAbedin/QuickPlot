@@ -24,6 +24,8 @@ import {
   DEFAULT_WORKSPACE_NAME,
   WORKSPACE_NAME_STORAGE_KEY,
 } from './features/workspace/WorkspaceTitle';
+import { Calculator } from './features/calculator/Calculator';
+import { useFocusedInput } from './features/calculator/useFocusedInput';
 import type { PlotCurve, SpecialPoint, CanvasTheme } from '@quickplot/renderer';
 import { DEFAULT_THEME } from '@quickplot/renderer';
 
@@ -130,9 +132,12 @@ export default function App() {
   const [sidebarOpen,   setSidebarOpen]   = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [saveFlash,     setSaveFlash]     = useState(false);
+  const [showKeyboard,  setShowKeyboard]  = useState(false);
   const [workspaceName, setWorkspaceName] = useState<string>(
     () => _fromHash?.name?.trim() || loadStoredName(),
   );
+
+  const focusedInput = useFocusedInput();
 
   useEffect(() => {
     try { window.localStorage.setItem(WORKSPACE_NAME_STORAGE_KEY, workspaceName); }
@@ -362,12 +367,39 @@ export default function App() {
 
       <div className="flex flex-1 min-h-0">
         {/* ── canvas ── */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 relative">
           <Canvas2D
             ref={canvasHandle}
             curves={curves}
             specialPoints={specialPoints}
             theme={theme}
+          />
+
+          {/* on-screen keyboard toggle (bottom-left) */}
+          <button
+            title={showKeyboard ? 'Hide keyboard' : 'Show keyboard'}
+            onClick={() => setShowKeyboard(v => !v)}
+            className={[
+              'absolute bottom-4 left-4 z-20 w-9 h-9 rounded-full border shadow-md',
+              'flex items-center justify-center transition-colors',
+              showKeyboard
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                : 'bg-neutral-800 text-neutral-300 hover:text-amber-300 border-[#161412]',
+            ].join(' ')}
+            aria-pressed={showKeyboard}
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" aria-hidden focusable="false">
+              <rect x="2.5" y="6" width="19" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M6 14h.01M9 14h.01M18 14h.01M12 14h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          <Calculator
+            open={showKeyboard}
+            onClose={() => setShowKeyboard(false)}
+            onInsert={(t) => { focusedInput.insertToken(t); }}
+            onBackspace={() => { focusedInput.backspace(); }}
+            onMoveCaret={(d) => { focusedInput.moveCaret(d); }}
           />
         </div>
 
@@ -414,6 +446,7 @@ export default function App() {
                       onSliderRangeChange={sliderRangeChange}
                       onToggleSliderAnimation={toggleAnimation}
                       onSliderLoopModeChange={sliderLoopModeChange}
+                      registerInput={focusedInput.bind}
                     />
                   );
                 })}

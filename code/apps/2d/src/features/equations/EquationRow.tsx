@@ -18,6 +18,11 @@ interface Props {
   onSliderRangeChange?: (name: string, min: number, max: number) => void;
   onToggleSliderAnimation?: (name: string) => void;
   onSliderLoopModeChange?: (name: string, mode: 'pingpong' | 'wrap') => void;
+  /**
+   * Called on every input mount so the on-screen calculator can target the
+   * last-focused equation input without racing `document.activeElement`.
+   */
+  registerInput?: (el: HTMLInputElement | null) => (() => void) | void;
 }
 
 const TYPE_LABELS: Record<EquationType, string> = {
@@ -62,6 +67,7 @@ function Inp({
   autoFocus,
   onChange,
   prefix,
+  register,
 }: {
   value: string;
   placeholder: string;
@@ -69,9 +75,15 @@ function Inp({
   autoFocus?: boolean;
   onChange: (v: string) => void;
   prefix?: string;
+  register?: (el: HTMLInputElement | null) => (() => void) | void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { if (autoFocus) ref.current?.focus(); }, [autoFocus]);
+  useEffect(() => {
+    if (!register) return;
+    const cleanup = register(ref.current);
+    return typeof cleanup === 'function' ? cleanup : undefined;
+  }, [register]);
 
   return (
     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -106,6 +118,7 @@ export function EquationRow({
   entry, autoFocus, onChange, onDelete, onTrace, isTracing,
   inlineSliders, animating,
   onSliderChange, onSliderRangeChange, onToggleSliderAnimation, onSliderLoopModeChange,
+  registerInput,
 }: Props) {
   const colorRef = useRef<HTMLInputElement>(null);
   // `autoDetect` defaults to true so existing entries (loaded from hash /
@@ -246,6 +259,7 @@ export function EquationRow({
             error={entry.error || entry.errorY || null}
             autoFocus={autoFocus}
             onChange={onUnifiedChange}
+            register={registerInput}
           />
           {entry.type === 'parametric' && (
             <div className="flex items-center gap-1 text-xs text-neutral-500 font-mono">
@@ -278,6 +292,7 @@ export function EquationRow({
               error={entry.error}
               autoFocus={autoFocus}
               onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+              register={registerInput}
             />
           )}
 
@@ -288,6 +303,7 @@ export function EquationRow({
               error={entry.error}
               autoFocus={autoFocus}
               onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+              register={registerInput}
             />
           )}
 
@@ -298,6 +314,7 @@ export function EquationRow({
               error={entry.error}
               autoFocus={autoFocus}
               onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+              register={registerInput}
             />
           )}
 
@@ -310,6 +327,7 @@ export function EquationRow({
                 autoFocus={autoFocus}
                 prefix="x ="
                 onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+                register={registerInput}
               />
               <Inp
                 value={entry.expressionY ?? ''}
@@ -317,6 +335,7 @@ export function EquationRow({
                 error={entry.errorY}
                 prefix="y ="
                 onChange={(v) => onChange({ expressionY: v, rawInput: undefined })}
+                register={registerInput}
               />
               <div className="flex items-center gap-1 text-xs text-neutral-500 font-mono">
                 <span>t ∈ [</span>
