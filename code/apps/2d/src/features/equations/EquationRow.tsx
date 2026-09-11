@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import type { EquationEntry, EquationType } from './types';
+import { detectEquationType } from './detectType';
 
 interface Props {
   entry: EquationEntry;
@@ -18,7 +19,32 @@ const TYPE_LABELS: Record<EquationType, string> = {
   points:     'data',
 };
 
+const TYPE_BADGE: Record<EquationType, string> = {
+  cartesian:  'y=',
+  polar:      'r=',
+  parametric: 'xy',
+  implicit:   'f=',
+  points:     'pts',
+};
+
 const TYPE_OPTIONS: EquationType[] = ['cartesian', 'polar', 'parametric', 'implicit', 'points'];
+
+/**
+ * When a row is in auto-detect mode we render a single input; its value
+ * comes from `rawInput` when present, otherwise it is reconstructed from
+ * the stored type + expression so hash-loaded entries display cleanly.
+ */
+function reconstructInput(entry: EquationEntry): string {
+  if (entry.rawInput !== undefined) return entry.rawInput;
+  switch (entry.type) {
+    case 'polar':
+      return entry.expression ? `r = ${entry.expression}` : '';
+    case 'parametric':
+      return `(${entry.expression || ''}, ${entry.expressionY || ''})`;
+    default:
+      return entry.expression;
+  }
+}
 
 function Inp({
   value,
@@ -69,10 +95,27 @@ function Inp({
 
 export function EquationRow({ entry, autoFocus, onChange, onDelete, onTrace, isTracing }: Props) {
   const colorRef = useRef<HTMLInputElement>(null);
+  // `autoDetect` defaults to true so existing entries (loaded from hash /
+  // localStorage) opt in without a migration.
+  const autoDetect = entry.autoDetect !== false;
+
+  const onUnifiedChange = (raw: string) => {
+    const det = detectEquationType(raw);
+    const patch: Partial<EquationEntry> = {
+      rawInput: raw,
+      type: det.type,
+      expression: det.expression,
+    };
+    // Keep expressionY consistent with detected shape; clearing it when we
+    // leave parametric prevents a stale y-expression from silently plotting.
+    patch.expressionY = det.type === 'parametric' ? (det.expressionY ?? '') : undefined;
+    if (det.type === 'points') patch.points = det.points;
+    onChange(patch);
+  };
 
   return (
     <div className="space-y-1 pb-2 border-b border-[#161412]/50 last:border-0">
-      {/* row 1: color + type + actions + delete */}
+      {/* row 1: color + type badge/select + actions + delete */}
       <div className="flex items-center gap-1.5">
         {/* color swatch */}
         <button
@@ -89,23 +132,49 @@ export function EquationRow({ entry, autoFocus, onChange, onDelete, onTrace, isT
           onChange={(e) => onChange({ color: e.target.value })}
         />
 
-        {/* type selector */}
-        {entry.type !== 'points' && (
+        {/* type: auto-detect shows a small badge; manual mode shows a select */}
+        {autoDetect ? (
+          <span
+            title={`Auto-detected: ${TYPE_LABELS[entry.type]}`}
+            className="text-neutral-500 text-[10px] font-pixel px-1 py-0.5 rounded border border-neutral-700"
+          >
+            {TYPE_BADGE[entry.type]}
+          </span>
+        ) : entry.type !== 'points' ? (
           <select
             value={entry.type}
             className="bg-neutral-700 text-neutral-300 text-xs rounded px-1 py-0.5 border-none outline-none cursor-pointer hover:bg-neutral-600"
-            onChange={(e) => onChange({ type: e.target.value as EquationType })}
+            onChange={(e) => onChange({ type: e.target.value as EquationType, rawInput: undefined })}
           >
             {TYPE_OPTIONS.filter(t => t !== 'points').map(t => (
               <option key={t} value={t}>{TYPE_LABELS[t]}</option>
             ))}
           </select>
-        )}
-        {entry.type === 'points' && (
+        ) : (
           <span className="text-neutral-500 text-xs font-pixel">data</span>
         )}
 
         <div className="flex-1" />
+
+        {/* auto/manual mode toggle (gear) */}
+        {entry.type !== 'points' && (
+          <button
+            title={autoDetect ? 'Pin type manually' : 'Return to auto-detect'}
+            onClick={() => onChange({
+              autoDetect: !autoDetect,
+              // Leaving auto mode drops the raw input so the per-type inputs
+              // show their own reconstructed values; returning to auto seeds
+              // rawInput from the current fields on next keystroke.
+              rawInput: undefined,
+            })}
+            className={[
+              'text-xs transition-colors leading-none w-4 text-center',
+              autoDetect ? 'text-neutral-600 hover:text-neutral-300' : 'text-amber-400 hover:text-amber-300',
+            ].join(' ')}
+          >
+            ⚙
+          </button>
+        )}
 
         {/* trace animation (non-points curves only) */}
         {entry.type !== 'points' && onTrace && (
@@ -156,73 +225,107 @@ export function EquationRow({ entry, autoFocus, onChange, onDelete, onTrace, isT
       </div>
 
       {/* row 2: expression(s) */}
-      {entry.type === 'cartesian' && (
-        <Inp
-          value={entry.expression}
-          placeholder="Input"
-          error={entry.error}
-          autoFocus={autoFocus}
-          onChange={(v) => onChange({ expression: v })}
-        />
-      )}
-
-      {entry.type === 'polar' && (
-        <Inp
-          value={entry.expression}
-          placeholder="2 + cos(t)"
-          error={entry.error}
-          autoFocus={autoFocus}
-          onChange={(v) => onChange({ expression: v })}
-        />
-      )}
-
-      {entry.type === 'implicit' && (
-        <Inp
-          value={entry.expression}
-          placeholder="x^2 + y^2 = 25"
-          error={entry.error}
-          autoFocus={autoFocus}
-          onChange={(v) => onChange({ expression: v })}
-        />
-      )}
-
-      {entry.type === 'parametric' && (
+      {autoDetect && entry.type !== 'points' ? (
         <>
           <Inp
-            value={entry.expression}
-            placeholder="cos(t)"
-            error={entry.error}
+            value={reconstructInput(entry)}
+            placeholder="y = x^2, r = 1+cos(t), (cos(t), sin(t)), x^2+y^2=1, (1,2),(3,4)"
+            error={entry.error || entry.errorY || null}
             autoFocus={autoFocus}
-            prefix="x ="
-            onChange={(v) => onChange({ expression: v })}
+            onChange={onUnifiedChange}
           />
-          <Inp
-            value={entry.expressionY ?? ''}
-            placeholder="sin(t)"
-            error={entry.errorY}
-            prefix="y ="
-            onChange={(v) => onChange({ expressionY: v })}
-          />
-          {/* t range */}
-          <div className="flex items-center gap-1 text-xs text-neutral-500 font-mono">
-            <span>t ∈ [</span>
-            <input
-              type="number"
-              className="w-14 bg-neutral-700 text-neutral-300 rounded px-1 py-0.5 outline-none text-center"
-              value={entry.tMin}
-              step={0.1}
-              onChange={(e) => onChange({ tMin: parseFloat(e.target.value) || 0 })}
+          {entry.type === 'parametric' && (
+            <div className="flex items-center gap-1 text-xs text-neutral-500 font-mono">
+              <span>t ∈ [</span>
+              <input
+                type="number"
+                className="w-14 bg-neutral-700 text-neutral-300 rounded px-1 py-0.5 outline-none text-center"
+                value={entry.tMin}
+                step={0.1}
+                onChange={(e) => onChange({ tMin: parseFloat(e.target.value) || 0 })}
+              />
+              <span>,</span>
+              <input
+                type="number"
+                className="w-14 bg-neutral-700 text-neutral-300 rounded px-1 py-0.5 outline-none text-center"
+                value={entry.tMax}
+                step={0.1}
+                onChange={(e) => onChange({ tMax: parseFloat(e.target.value) || 0 })}
+              />
+              <span>]</span>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {entry.type === 'cartesian' && (
+            <Inp
+              value={entry.expression}
+              placeholder="Input"
+              error={entry.error}
+              autoFocus={autoFocus}
+              onChange={(v) => onChange({ expression: v, rawInput: undefined })}
             />
-            <span>,</span>
-            <input
-              type="number"
-              className="w-14 bg-neutral-700 text-neutral-300 rounded px-1 py-0.5 outline-none text-center"
-              value={entry.tMax}
-              step={0.1}
-              onChange={(e) => onChange({ tMax: parseFloat(e.target.value) || 0 })}
+          )}
+
+          {entry.type === 'polar' && (
+            <Inp
+              value={entry.expression}
+              placeholder="2 + cos(t)"
+              error={entry.error}
+              autoFocus={autoFocus}
+              onChange={(v) => onChange({ expression: v, rawInput: undefined })}
             />
-            <span>]</span>
-          </div>
+          )}
+
+          {entry.type === 'implicit' && (
+            <Inp
+              value={entry.expression}
+              placeholder="x^2 + y^2 = 25"
+              error={entry.error}
+              autoFocus={autoFocus}
+              onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+            />
+          )}
+
+          {entry.type === 'parametric' && (
+            <>
+              <Inp
+                value={entry.expression}
+                placeholder="cos(t)"
+                error={entry.error}
+                autoFocus={autoFocus}
+                prefix="x ="
+                onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+              />
+              <Inp
+                value={entry.expressionY ?? ''}
+                placeholder="sin(t)"
+                error={entry.errorY}
+                prefix="y ="
+                onChange={(v) => onChange({ expressionY: v, rawInput: undefined })}
+              />
+              <div className="flex items-center gap-1 text-xs text-neutral-500 font-mono">
+                <span>t ∈ [</span>
+                <input
+                  type="number"
+                  className="w-14 bg-neutral-700 text-neutral-300 rounded px-1 py-0.5 outline-none text-center"
+                  value={entry.tMin}
+                  step={0.1}
+                  onChange={(e) => onChange({ tMin: parseFloat(e.target.value) || 0 })}
+                />
+                <span>,</span>
+                <input
+                  type="number"
+                  className="w-14 bg-neutral-700 text-neutral-300 rounded px-1 py-0.5 outline-none text-center"
+                  value={entry.tMax}
+                  step={0.1}
+                  onChange={(e) => onChange({ tMax: parseFloat(e.target.value) || 0 })}
+                />
+                <span>]</span>
+              </div>
+            </>
+          )}
         </>
       )}
 
