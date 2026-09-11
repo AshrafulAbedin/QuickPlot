@@ -1,5 +1,5 @@
 import {
-  useState, useMemo, useRef, useCallback,
+  useState, useMemo, useRef, useCallback, useEffect,
 } from 'react';
 import {
   validateExpression,
@@ -18,6 +18,11 @@ import { SliderPanel } from './features/sliders/SliderPanel';
 import type { Slider } from './features/sliders/SliderPanel';
 import { useSliders } from './features/sliders/useSliders';
 import { ThemePicker } from './features/theme/ThemePicker';
+import {
+  WorkspaceTitle,
+  DEFAULT_WORKSPACE_NAME,
+  WORKSPACE_NAME_STORAGE_KEY,
+} from './features/workspace/WorkspaceTitle';
 import type { PlotCurve, SpecialPoint, CanvasTheme } from '@quickplot/renderer';
 import { DEFAULT_THEME } from '@quickplot/renderer';
 
@@ -26,6 +31,8 @@ interface HashPayload {
   eqs: Array<{ e: string; ey?: string; t: EquationType; c: string; v: boolean; mn: number; mx: number }>;
   // `sp` (animation speed) is optional so links shared before it existed still load.
   sliders?: Record<string, { value: number; min: number; max: number; step: number; sp?: number }>;
+  // `name` is optional so pre-title share links still load.
+  name?: string;
 }
 
 const PALETTE = [
@@ -37,6 +44,7 @@ const PALETTE = [
 function encodeHash(
   eqs: ReturnType<typeof useEquations>['equations'],
   sliders: Record<string, Slider>,
+  name: string,
 ): string {
   const payload: HashPayload = {
     eqs: eqs
@@ -48,11 +56,16 @@ function encodeHash(
         { value: s.value, min: s.min, max: s.max, step: s.step, sp: s.speed ?? 1 },
       ]),
     ),
+    name,
   };
   return btoa(encodeURIComponent(JSON.stringify(payload)));
 }
 
-function loadFromHash(): { equations: ReturnType<typeof useEquations>['equations']; sliders: Record<string, Slider> } | null {
+function loadFromHash(): {
+  equations: ReturnType<typeof useEquations>['equations'];
+  sliders: Record<string, Slider>;
+  name?: string;
+} | null {
   try {
     const h = window.location.hash.slice(1);
     if (!h) return null;
@@ -77,8 +90,16 @@ function loadFromHash(): { equations: ReturnType<typeof useEquations>['equations
         sliders[name] = { name, value: s.value, min: s.min, max: s.max, step: s.step, speed: s.sp ?? 1 };
       }
     }
-    return { equations, sliders };
+    return { equations, sliders, name: payload.name };
   } catch { return null; }
+}
+
+function loadStoredName(): string {
+  try {
+    const stored = window.localStorage.getItem(WORKSPACE_NAME_STORAGE_KEY);
+    if (stored && stored.trim()) return stored;
+  } catch { /* localStorage unavailable */ }
+  return DEFAULT_WORKSPACE_NAME;
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
@@ -105,6 +126,15 @@ export default function App() {
   const [ptY,           setPtY]           = useState('');
   const [sidebarOpen,   setSidebarOpen]   = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [saveFlash,     setSaveFlash]     = useState(false);
+  const [workspaceName, setWorkspaceName] = useState<string>(
+    () => _fromHash?.name?.trim() || loadStoredName(),
+  );
+
+  useEffect(() => {
+    try { window.localStorage.setItem(WORKSPACE_NAME_STORAGE_KEY, workspaceName); }
+    catch { /* localStorage unavailable */ }
+  }, [workspaceName]);
 
   // ── derive PlotCurves ───────────────────────────────────────────────────
   const curves = useMemo<PlotCurve[]>(() =>
@@ -219,13 +249,22 @@ export default function App() {
   }, []);
 
   const copyLink = useCallback(async () => {
-    const hash = encodeHash(equations, sliders);
+    const hash = encodeHash(equations, sliders, workspaceName);
     window.history.replaceState(null, '', `#${hash}`);
     const url = `${window.location.origin}${window.location.pathname}#${hash}`;
     try { await navigator.clipboard.writeText(url); }
     catch { window.prompt('Copy this share link:', url); }
     brief('link');
-  }, [equations, sliders]);
+  }, [equations, sliders, workspaceName]);
+
+  // TODO: hook to Neon persistence (see CLAUDE.md → Not done). Until the
+  // backend lands, "Save" reuses the share-link action so a guest can still
+  // capture their work.
+  const saveWorkspace = useCallback(async () => {
+    await copyLink();
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1800);
+  }, [copyLink]);
 
   return (
     <div className="flex flex-col h-full bg-neutral-900">
@@ -233,6 +272,13 @@ export default function App() {
       <header className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-[#161412] shrink-0">
         <span className="font-pixel text-amber-400 text-sm tracking-widest">QuickPlot</span>
         <span className="font-pixel text-neutral-500 text-sm">/&nbsp;2D</span>
+        <span className="text-neutral-600 shrink-0">|</span>
+        <WorkspaceTitle
+          name={workspaceName}
+          onChange={setWorkspaceName}
+          onSave={saveWorkspace}
+          saveFlash={saveFlash}
+        />
         <div className="ml-auto flex items-center gap-3">
           {/* special-points toggle */}
           <button
