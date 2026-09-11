@@ -6,6 +6,7 @@ import {
   findRoots, findExtrema, findIntersections,
   parseWithScope,
   parseJsonData, parseCsvData,
+  detectParameters,
 } from '@quickplot/core';
 import {
   Canvas2D, type Canvas2DHandle,
@@ -114,7 +115,9 @@ export default function App() {
   const {
     sliders, sliderScope, animating,
     onChange: sliderChange, onRangeChange: sliderRangeChange,
-    onSpeedChange: sliderSpeedChange, toggleAnimation,
+    onSpeedChange: sliderSpeedChange,
+    onLoopModeChange: sliderLoopModeChange,
+    toggleAnimation,
   } = useSliders(equations, _fromHash?.sliders);
   const { activeTraces, traceSnap, startTrace } = useTraceAnimation();
 
@@ -135,6 +138,21 @@ export default function App() {
     try { window.localStorage.setItem(WORKSPACE_NAME_STORAGE_KEY, workspaceName); }
     catch { /* localStorage unavailable */ }
   }, [workspaceName]);
+
+  const paramsByEq = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    const union = new Set<string>();
+    equations.forEach(eq => {
+      const set = new Set<string>([
+        ...detectParameters(eq.expression),
+        ...(eq.expressionY ? detectParameters(eq.expressionY) : []),
+      ]);
+      set.forEach(p => union.add(p));
+      map.set(eq.id, set);
+    });
+    return { byEq: map, union };
+  }, [equations]);
+  const inlineSliderNames = paramsByEq.union;
 
   // ── derive PlotCurves ───────────────────────────────────────────────────
   const curves = useMemo<PlotCurve[]>(() =>
@@ -378,17 +396,27 @@ export default function App() {
             <div className="p-3">
               <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-3">EQUATIONS</p>
               <div className="space-y-0">
-                {equations.map((eq, i) => (
-                  <EquationRow
-                    key={eq.id}
-                    entry={eq}
-                    autoFocus={i === equations.length - 1 && eq.expression === ''}
-                    onChange={patch => update(eq.id, patch)}
-                    onDelete={() => remove(eq.id)}
-                    onTrace={() => startTrace(eq.id)}
-                    isTracing={activeTraces.has(eq.id)}
-                  />
-                ))}
+                {equations.map((eq, i) => {
+                  const paramNames = paramsByEq.byEq.get(eq.id) ?? new Set<string>();
+                  const inlineSliders = Object.values(sliders).filter(s => paramNames.has(s.name));
+                  return (
+                    <EquationRow
+                      key={eq.id}
+                      entry={eq}
+                      autoFocus={i === equations.length - 1 && eq.expression === ''}
+                      onChange={patch => update(eq.id, patch)}
+                      onDelete={() => remove(eq.id)}
+                      onTrace={() => startTrace(eq.id)}
+                      isTracing={activeTraces.has(eq.id)}
+                      inlineSliders={inlineSliders}
+                      animating={animating}
+                      onSliderChange={sliderChange}
+                      onSliderRangeChange={sliderRangeChange}
+                      onToggleSliderAnimation={toggleAnimation}
+                      onSliderLoopModeChange={sliderLoopModeChange}
+                    />
+                  );
+                })}
               </div>
               {/* add buttons */}
               <div className="flex gap-1 mt-3">
@@ -410,9 +438,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* sliders */}
+            {/* sliders — only show those not already rendered inline under
+                an equation (typically empty, since every parameter comes
+                from an equation; kept for the unlinked-slider fallback). */}
             <SliderPanel
-              sliders={sliders}
+              sliders={Object.fromEntries(
+                Object.entries(sliders).filter(([name]) => !inlineSliderNames.has(name)),
+              )}
               onChange={sliderChange}
               onRangeChange={sliderRangeChange}
               animating={animating}

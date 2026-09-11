@@ -6,6 +6,12 @@ interface Slider {
   step: number;
   /** Animation rate multiplier. Undefined is treated as ×1. */
   speed?: number;
+  /**
+   * Loop behaviour when the animated value reaches a bound:
+   *  - `pingpong` (default): reverse direction.
+   *  - `wrap`: jump to the opposite bound.
+   */
+  loopMode?: 'pingpong' | 'wrap';
 }
 
 /** Multipliers offered in the speed dropdown. */

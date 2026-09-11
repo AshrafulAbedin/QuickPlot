@@ -76,12 +76,21 @@ export function useSliders(
             const dir = animDirRef.current[name] ?? 1;
             const delta = s.step * STEPS_PER_SECOND * (s.speed ?? 1) * dt;
             const newVal = s.value + dir * delta;
+            const wrap = s.loopMode === 'wrap';
             if (newVal >= s.max) {
-              animDirRef.current[name] = -1;
-              next[name] = { ...s, value: s.max };
+              if (wrap) {
+                next[name] = { ...s, value: s.min };
+              } else {
+                animDirRef.current[name] = -1;
+                next[name] = { ...s, value: s.max };
+              }
             } else if (newVal <= s.min) {
-              animDirRef.current[name] = 1;
-              next[name] = { ...s, value: s.min };
+              if (wrap) {
+                next[name] = { ...s, value: s.max };
+              } else {
+                animDirRef.current[name] = 1;
+                next[name] = { ...s, value: s.min };
+              }
             } else {
               next[name] = { ...s, value: newVal };
             }
@@ -118,6 +127,10 @@ export function useSliders(
     setSliders(prev => ({ ...prev, [name]: { ...prev[name], speed } }));
   }, []);
 
+  const onLoopModeChange = useCallback((name: string, loopMode: 'pingpong' | 'wrap') => {
+    setSliders(prev => ({ ...prev, [name]: { ...prev[name], loopMode } }));
+  }, []);
+
   const toggleAnimation = useCallback((name: string) => {
     setAnimating(prev => {
       const next = new Set(prev);
@@ -133,6 +146,6 @@ export function useSliders(
 
   return {
     sliders, setSliders, sliderScope, animating,
-    onChange, onRangeChange, onSpeedChange, toggleAnimation,
+    onChange, onRangeChange, onSpeedChange, onLoopModeChange, toggleAnimation,
   };
 }

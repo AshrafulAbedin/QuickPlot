@@ -1,6 +1,8 @@
 import { useRef, useEffect } from 'react';
 import type { EquationEntry, EquationType } from './types';
 import { detectEquationType } from './detectType';
+import { InlineSliderRow } from '../sliders/InlineSliderRow';
+import type { Slider } from '../sliders/SliderPanel';
 
 interface Props {
   entry: EquationEntry;
@@ -9,6 +11,13 @@ interface Props {
   onDelete: () => void;
   onTrace?: () => void;
   isTracing?: boolean;
+  /** Sliders whose parameter names appear in this equation. Rendered inline. */
+  inlineSliders?: Slider[];
+  animating?: Set<string>;
+  onSliderChange?: (name: string, value: number) => void;
+  onSliderRangeChange?: (name: string, min: number, max: number) => void;
+  onToggleSliderAnimation?: (name: string) => void;
+  onSliderLoopModeChange?: (name: string, mode: 'pingpong' | 'wrap') => void;
 }
 
 const TYPE_LABELS: Record<EquationType, string> = {
@@ -93,7 +102,11 @@ function Inp({
   );
 }
 
-export function EquationRow({ entry, autoFocus, onChange, onDelete, onTrace, isTracing }: Props) {
+export function EquationRow({
+  entry, autoFocus, onChange, onDelete, onTrace, isTracing,
+  inlineSliders, animating,
+  onSliderChange, onSliderRangeChange, onToggleSliderAnimation, onSliderLoopModeChange,
+}: Props) {
   const colorRef = useRef<HTMLInputElement>(null);
   // `autoDetect` defaults to true so existing entries (loaded from hash /
   // localStorage) opt in without a migration.
@@ -333,6 +346,24 @@ export function EquationRow({ entry, autoFocus, onChange, onDelete, onTrace, isT
         <div className="text-xs text-neutral-500 font-mono truncate px-1">
           {entry.expression === '__manual__' ? 'manual points' : entry.expression}
           {' '}({entry.points?.length ?? 0} pts)
+        </div>
+      )}
+
+      {inlineSliders && inlineSliders.length > 0
+        && onSliderChange && onSliderRangeChange
+        && onToggleSliderAnimation && onSliderLoopModeChange && (
+        <div className="mt-1 border-l border-neutral-700/60">
+          {inlineSliders.map(s => (
+            <InlineSliderRow
+              key={s.name}
+              slider={s}
+              animating={animating?.has(s.name) ?? false}
+              onChange={(v) => onSliderChange(s.name, v)}
+              onRangeChange={(mn, mx) => onSliderRangeChange(s.name, mn, mx)}
+              onToggleAnimation={() => onToggleSliderAnimation(s.name)}
+              onLoopModeChange={(m) => onSliderLoopModeChange(s.name, m)}
+            />
+          ))}
         </div>
       )}
     </div>
