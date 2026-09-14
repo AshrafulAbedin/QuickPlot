@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { hasFirebaseConfig, useAuth } from '@quickplot/auth';
 import { GoogleButton } from './GoogleButton';
-import { startGoogleAuth, type AuthIntent } from '../../lib/auth';
+
+export type AuthIntent = 'signin' | 'register';
 
 const COPY: Record<AuthIntent, { title: string; blurb: string; cta: string }> = {
   signin: {
@@ -30,13 +32,18 @@ interface AuthPanelProps {
 
 export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
   const [notice, setNotice] = useState('');
+  const { loginWithGoogle } = useAuth();
   const copy = COPY[intent];
 
   const handleGoogle = async () => {
+    if (!hasFirebaseConfig()) {
+      setNotice('Google sign-in needs Firebase settings. Copy .env.example to .env and add the project values.');
+      return;
+    }
+
     try {
-      if (!(await startGoogleAuth(intent))) {
-        setNotice('Google sign-in needs Firebase settings. Copy .env.example to .env and add the project values.');
-      }
+      await loginWithGoogle();
+      window.location.assign(import.meta.env.VITE_URL_2D ?? 'http://localhost:5174');
     } catch (error) {
       setNotice(error instanceof Error ? `Google sign-in failed: ${error.message}` : 'Google sign-in failed.');
     }

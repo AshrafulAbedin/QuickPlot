@@ -6,7 +6,7 @@ import { Sparks } from './components/Sparks';
 import { useWordCycle } from './hooks/useWordCycle';
 import { AuthPanel } from './features/auth/AuthPanel';
 import { LauncherPanel } from './features/launcher/LauncherPanel';
-import type { AuthIntent } from './lib/auth';
+import type { AuthIntent } from './features/auth/AuthPanel';
 
 /**
  * Which panel the dark half is showing. Kept as local state rather than routes:
