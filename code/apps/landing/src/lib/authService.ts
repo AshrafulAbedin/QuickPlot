@@ -1,8 +1,8 @@
 import { signInWithPopup, type User } from 'firebase/auth';
-import { auth, googleProvider } from './firebase';
+import { getFirebaseAuth, getGoogleProvider } from './firebase';
 
 /** Matches the Google popup flow used by apps/web. */
 export async function loginWithGoogle(): Promise<User> {
-  const credential = await signInWithPopup(auth, googleProvider);
+  const credential = await signInWithPopup(getFirebaseAuth(), getGoogleProvider());
   return credential.user;
 }

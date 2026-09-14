@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -10,9 +10,21 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+export function hasFirebaseConfig(): boolean {
+  return Object.values(firebaseConfig).every(Boolean);
+}
 
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+export function getFirebaseAuth() {
+  if (!hasFirebaseConfig()) {
+    throw new Error('Firebase is not configured. Add the VITE_FIREBASE_* values to .env.');
+  }
 
-googleProvider.setCustomParameters({ prompt: 'select_account' });
+  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  return getAuth(app);
+}
+
+export function getGoogleProvider() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  return provider;
+}
