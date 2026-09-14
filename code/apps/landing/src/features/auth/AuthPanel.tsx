@@ -32,10 +32,13 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
   const [notice, setNotice] = useState('');
   const copy = COPY[intent];
 
-  const handleGoogle = () => {
-    // Falls through to a notice until the Neon-backed OAuth route is live.
-    if (!startGoogleAuth(intent)) {
-      setNotice('Google sign-in is not connected yet — the graphers work without an account.');
+  const handleGoogle = async () => {
+    try {
+      if (!(await startGoogleAuth(intent))) {
+        setNotice('Google sign-in needs Firebase settings. Copy .env.example to .env and add the project values.');
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? `Google sign-in failed: ${error.message}` : 'Google sign-in failed.');
     }
   };
 

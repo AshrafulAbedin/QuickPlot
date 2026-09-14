@@ -2,28 +2,34 @@
  * Auth entry points for the landing page.
  *
  * Google is the only sign-in method: there are no passwords to collect, so the
- * sign-in and register screens both funnel into `startGoogleAuth`. The backend
- * (Neon Postgres) is not wired up yet — this module is deliberately the single
- * place that has to change once it is, so no UI component needs editing.
+ * sign-in and register screens both funnel into the Firebase auth service used
+ * by the authenticated web app.
  */
+
+import { loginWithGoogle } from './authService';
 
 export type AuthIntent = 'signin' | 'register';
 
-/** Set once the OAuth redirect endpoint exists; until then auth is a no-op. */
-const AUTH_ENDPOINT = import.meta.env.VITE_AUTH_URL ?? '';
+const configured = [
+  import.meta.env.VITE_FIREBASE_API_KEY,
+  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  import.meta.env.VITE_FIREBASE_APP_ID,
+].every(Boolean);
 
 export function isAuthConfigured(): boolean {
-  return AUTH_ENDPOINT.length > 0;
+  return configured;
 }
 
 /**
- * Sends the browser to the Google OAuth flow.
- *
- * Returns `false` when auth is not configured yet, so callers can show a
- * "coming soon" notice instead of navigating nowhere.
+ * Starts the same Firebase Google popup flow used by the graphers.
  */
-export function startGoogleAuth(intent: AuthIntent): boolean {
+export async function startGoogleAuth(_intent: AuthIntent): Promise<boolean> {
   if (!isAuthConfigured()) return false;
-  window.location.href = `${AUTH_ENDPOINT}?intent=${intent}`;
+
+  await loginWithGoogle();
+  window.location.assign(import.meta.env.VITE_URL_2D ?? 'http://localhost:5174');
   return true;
 }
