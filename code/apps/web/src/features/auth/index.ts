@@ -1,3 +1,2 @@
-export { AuthProvider } from './AuthContext'
-export { useAuth } from './useAuth'
+export { AuthProvider, useAuth } from '@quickplot/auth'
 export { AuthButton } from './AuthButton'

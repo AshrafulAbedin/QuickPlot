@@ -10,11 +10,11 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@quickplot/auth": "workspace:*",
     "@quickplot/core": "workspace:*",
     "@quickplot/renderer": "workspace:*",
     "@quickplot/types": "workspace:*",
     "@supabase/supabase-js": "^2.39.0",
-    "firebase": "^10.7.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"

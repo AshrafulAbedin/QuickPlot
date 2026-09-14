@@ -14,6 +14,9 @@ importers:
 
   apps/2d:
     dependencies:
+      '@quickplot/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@quickplot/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -26,9 +29,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.39.0
         version: 2.110.7
-      firebase:
-        specifier: ^10.7.1
-        version: 10.14.1
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -147,9 +147,9 @@ importers:
 
   apps/landing:
     dependencies:
-      firebase:
-        specifier: ^12.15.0
-        version: 12.15.0
+      '@quickplot/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -187,15 +187,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@quickplot/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@quickplot/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@supabase/supabase-js':
         specifier: ^2.110.7
         version: 2.110.7
-      firebase:
-        specifier: ^12.15.0
-        version: 12.15.0
       lucide-react:
         specifier: ^1.28.0
         version: 1.28.0(react@19.2.7)
@@ -239,6 +239,12 @@ importers:
       vite:
         specifier: ^8.1.1
         version: 8.1.3(@types/node@24.13.3)(jiti@1.21.7)
+
+  packages/auth:
+    dependencies:
+      firebase:
+        specifier: ^12.15.0
+        version: 12.15.0
 
   packages/core:
     dependencies:

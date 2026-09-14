@@ -6,8 +6,7 @@
  * by the authenticated web app.
  */
 
-import { loginWithGoogle } from './authService';
-import { hasFirebaseConfig } from './firebase';
+import { hasFirebaseConfig, loginWithGoogle } from '@quickplot/auth';
 
 export type AuthIntent = 'signin' | 'register';
 
