@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@quickplot/auth';
 import { Backdrop } from './components/Backdrop';
 import { EmbossButton } from './components/EmbossButton';
 import { JumpyWord } from './components/JumpyWord';
@@ -19,6 +20,7 @@ const ROTATING_WORDS = ['seconds', 'one line', '3D', 'polar', 'real time'];
 
 function Hero({ onAuth }: { onAuth: (intent: AuthIntent) => void }) {
   const wordIndex = useWordCycle(ROTATING_WORDS.length);
+  const { user, signOut } = useAuth();
 
   return (
     <div className="animate-rise flex w-full max-w-[420px] flex-col items-center">
@@ -38,6 +40,12 @@ function Hero({ onAuth }: { onAuth: (intent: AuthIntent) => void }) {
         </Sparks>
       </p>
 
+      {user ? (
+        <div className="mt-11 w-full text-center">
+          <p className="text-sm text-neutral-300">Signed in as {user.displayName ?? user.email}</p>
+          <button type="button" onClick={() => void signOut()} className="mt-3 text-sm text-amber-500 underline underline-offset-4 hover:text-amber-400">Sign out</button>
+        </div>
+      ) : (
       <nav aria-label="Account" className="mt-11 flex w-full flex-col gap-5">
         <EmbossButton variant="primary" onClick={() => onAuth('signin')}>
           <span className="block text-center font-head text-xl font-semibold">Sign in</span>
@@ -53,6 +61,7 @@ function Hero({ onAuth }: { onAuth: (intent: AuthIntent) => void }) {
           </span>
         </EmbossButton>
       </nav>
+      )}
 
       <p className="mt-11 text-center text-xs font-light text-neutral-500">
         Or jump straight into a grapher — no account needed.
