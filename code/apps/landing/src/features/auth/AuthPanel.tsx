@@ -73,7 +73,7 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
         </div>
         <button
           type="button"
-          onClick={() => window.location.assign(import.meta.env.VITE_URL_2D ?? 'http://localhost:5174')}
+          onClick={() => window.location.assign(import.meta.env.VITE_URL_2D ?? '/2d/')}
           className="btn-emboss mt-7 w-full rounded-xl bg-amber-500 px-6 py-4 font-head text-lg font-semibold text-ink-900 [--emboss-base:#9a6b00] hover:bg-amber-400"
         >
           Open 2D grapher

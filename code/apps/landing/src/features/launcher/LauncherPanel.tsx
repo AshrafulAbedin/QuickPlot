@@ -2,8 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { EmbossButton } from '../../components/EmbossButton';
 import { ToolsPanel } from './ToolsPanel';
 
-const URL_2D = import.meta.env.VITE_URL_2D ?? 'http://localhost:5174';
-const URL_3D = import.meta.env.VITE_URL_3D ?? 'http://localhost:5175';
+const URL_2D = import.meta.env.VITE_URL_2D ?? '/2d/';
+const URL_3D = import.meta.env.VITE_URL_3D ?? '/3d/';
 
 function Icon2D() {
   return (
