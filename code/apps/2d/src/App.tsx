@@ -18,6 +18,7 @@ import { SliderPanel } from './features/sliders/SliderPanel';
 import type { Slider } from './features/sliders/SliderPanel';
 import { useSliders } from './features/sliders/useSliders';
 import { ThemePicker } from './features/theme/ThemePicker';
+import { AuthButton } from './features/auth/AuthButton';
 import type { PlotCurve, SpecialPoint, CanvasTheme } from '@quickplot/renderer';
 import { DEFAULT_THEME } from '@quickplot/renderer';
 
@@ -276,6 +277,7 @@ export default function App() {
           >
             ⌂
           </button>
+          <AuthButton />
         </div>
       </header>
 

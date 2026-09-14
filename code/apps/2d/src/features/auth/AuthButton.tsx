@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { useAuth } from './useAuth'
 
 export function AuthButton() {
@@ -30,11 +29,11 @@ export function AuthButton() {
   }
 
   return (
-    <Link
-      to="/login"
+    <a
+      href="/"
       className="px-4 py-2 rounded-lg bg-amber-400 text-neutral-950 font-medium hover:bg-amber-300 transition text-sm"
     >
       Sign in
-    </Link>
+    </a>
   )
 }
