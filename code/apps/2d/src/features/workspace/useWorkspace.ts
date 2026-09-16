@@ -5,7 +5,7 @@ import {
   getWorkspace,
   updateWorkspace as updateWs,
   deleteWorkspace as deleteWs,
-  toggleWorkspaceSharing,
+  setWorkspacePublic,
 } from '../../lib/db'
 
 interface UseWorkspaceReturn {
@@ -17,7 +17,7 @@ interface UseWorkspaceReturn {
   update: (updates: UpdateWorkspaceInput) => Promise<void>
   remove: () => Promise<void>
   removeById: (id: string) => Promise<boolean>
-  toggleSharing: (shared: boolean) => Promise<string | null>
+  setPublic: (isPublic: boolean) => Promise<string | null>
   clear: () => void
 }
 
@@ -98,18 +98,18 @@ export function useWorkspace(): UseWorkspaceReturn {
     }
   }, [])
 
-  const toggleSharing = useCallback(async (shared: boolean) => {
+  const setPublic = useCallback(async (isPublic: boolean) => {
     if (!workspace) return null
     setLoading(true)
     setError(null)
     try {
-      const shareId = await toggleWorkspaceSharing(workspace.id, shared)
+      const shareToken = await setWorkspacePublic(workspace.id, isPublic)
       setWorkspace(prev =>
-        prev ? { ...prev, shared, shareId: shareId ?? undefined, updatedAt: new Date().toISOString() } : null,
+        prev ? { ...prev, isPublic, shareToken, updatedAt: new Date().toISOString() } : null,
       )
-      return shareId
+      return shareToken
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to toggle sharing')
+      setError(e instanceof Error ? e.message : 'Failed to change sharing')
       return null
     } finally {
       setLoading(false)
@@ -121,5 +121,5 @@ export function useWorkspace(): UseWorkspaceReturn {
     setError(null)
   }, [])
 
-  return { workspace, loading, error, create, load, update, remove, removeById, toggleSharing, clear }
+  return { workspace, loading, error, create, load, update, remove, removeById, setPublic, clear }
 }

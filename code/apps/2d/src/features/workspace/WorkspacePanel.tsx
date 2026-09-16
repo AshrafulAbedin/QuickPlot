@@ -7,13 +7,13 @@ import type { CreateWorkspaceInput, Workspace } from '@quickplot/types'
 
 export function WorkspacePanel() {
   const { user } = useAuth()
-  const { workspace, create, load, removeById, toggleSharing, loading, error } = useWorkspace()
+  const { workspace, create, load, removeById, setPublic, loading, error } = useWorkspace()
   const { workspaces, fetchList, removeLocal, addLocal, loading: listLoading } = useWorkspaceList()
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (user) fetchList(user.uid)
+    if (user) fetchList()
   }, [user, fetchList])
 
   if (!user) {
@@ -28,12 +28,10 @@ export function WorkspacePanel() {
     const title = window.prompt('Workspace name:', 'Untitled')
     if (!title) return
     const input: CreateWorkspaceInput = {
-      ownerId: user!.uid,
       title,
       equations: [],
       viewport: { xMin: -10, xMax: 10, yMin: -10, yMax: 10 },
       sliders: [],
-      shared: false,
     }
     const created = await create(input)
     if (created) addLocal(created)
@@ -47,11 +45,11 @@ export function WorkspacePanel() {
     if (!window.confirm(`Delete "${ws.title}"?`)) return
     removeLocal(ws.id)
     const ok = await removeById(ws.id)
-    if (!ok) fetchList(user!.uid)
+    if (!ok) fetchList()
   }
 
-  function shareUrlFor(shareId: string) {
-    return `${window.location.origin}/shared/${shareId}`
+  function shareUrlFor(shareToken: string) {
+    return `${window.location.origin}/shared/${shareToken}`
   }
 
   async function copyToClipboard(url: string) {
@@ -61,13 +59,13 @@ export function WorkspacePanel() {
 
   async function handleShare() {
     if (!workspace) return
-    const shareId = await toggleSharing(true)
-    if (shareId) await copyToClipboard(shareUrlFor(shareId))
+    const shareToken = await setPublic(true)
+    if (shareToken) await copyToClipboard(shareUrlFor(shareToken))
   }
 
   async function handleCopyLink() {
-    if (!workspace?.shareId) return
-    await copyToClipboard(shareUrlFor(workspace.shareId))
+    if (!workspace) return
+    await copyToClipboard(shareUrlFor(workspace.shareToken))
   }
 
   function handleExport() {
@@ -86,13 +84,11 @@ export function WorkspacePanel() {
       const text = await file.text()
       const parsed = parseWorkspaceJson(text)
       const created = await create({
-        ownerId: user!.uid,
         title: parsed.title,
         equations: parsed.equations,
         viewport: parsed.viewport,
         sliders: parsed.sliders,
         theme: parsed.theme,
-        shared: false,
       })
       if (created) addLocal(created)
     } catch (err) {
@@ -137,14 +133,14 @@ export function WorkspacePanel() {
             Active: <span className="text-amber-400">{workspace.title}</span>
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
-            {workspace.shared ? (
+            {workspace.isPublic ? (
               <button onClick={handleCopyLink} className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400 hover:bg-green-600/30">Copy link</button>
             ) : (
               <button onClick={handleShare} disabled={loading} className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400 hover:bg-green-600/30 disabled:opacity-50">Share</button>
             )}
             <button onClick={handleExport} className="text-xs px-2 py-1 rounded bg-neutral-600/40 text-neutral-300 hover:bg-neutral-600/60">Export</button>
           </div>
-          {workspace.shared && (
+          {workspace.isPublic && (
             <p className="mt-1 text-[10px] text-green-400/70">Anyone with the link can view this workspace.</p>
           )}
           {shareUrl && <p className="mt-1 text-xs text-green-300 break-all">Link copied: {shareUrl}</p>}
