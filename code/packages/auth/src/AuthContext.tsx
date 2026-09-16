@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react';
 import * as authService from './authService';
 import type { AuthUser } from './authService';
+import { ensureProfile } from './supabaseClient';
 
 export interface AuthContextValue {
   user: AuthUser | null;
@@ -19,7 +20,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => authService.onAuthChange((currentUser) => {
+  useEffect(() => authService.onAuthChange(async (currentUser) => {
+    // Make sure the profiles row exists before anything can write a workspace
+    // that references it. A failure here is not fatal to plotting.
+    if (currentUser) {
+      try {
+        await ensureProfile();
+      } catch (caught) {
+        console.warn('Could not sync profile to the database:', caught);
+      }
+    }
     setUser(currentUser);
     setLoading(false);
   }), []);

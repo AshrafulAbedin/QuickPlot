@@ -1,5 +1,13 @@
-import type { User } from '@supabase/supabase-js';
-import { getSupabase, hasAuthConfig } from './supabaseClient';
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  updateProfile,
+  type User,
+} from 'firebase/auth';
+import { getFirebaseAuth, getGoogleProvider, hasAuthConfig } from './firebase';
 
 /**
  * Provider-neutral view of the signed-in user. UI code depends on this shape
@@ -13,49 +21,32 @@ export interface AuthUser {
 }
 
 function toAuthUser(user: User): AuthUser {
-  const meta = user.user_metadata ?? {};
   return {
-    uid: user.id,
-    email: user.email ?? null,
-    displayName: (meta.full_name ?? meta.name ?? null) as string | null,
-    photoURL: (meta.avatar_url ?? meta.picture ?? null) as string | null,
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+    photoURL: user.photoURL,
   };
 }
 
-export async function register({ email, password, fullName }: { email: string; password: string; fullName: string }): Promise<AuthUser | null> {
-  const { data, error } = await getSupabase().auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName } },
-  });
-  if (error) throw error;
-  return data.user ? toAuthUser(data.user) : null;
+export async function register({ email, password, fullName }: { email: string; password: string; fullName: string }): Promise<AuthUser> {
+  const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+  if (fullName) await updateProfile(credential.user, { displayName: fullName });
+  return toAuthUser(credential.user);
 }
 
 export async function login({ email, password }: { email: string; password: string }): Promise<AuthUser> {
-  const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return toAuthUser(data.user);
+  const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+  return toAuthUser(credential.user);
 }
 
-/**
- * Starts the Google OAuth redirect. The page navigates away, so there is no
- * user to return — `onAuthChange` fires once Supabase lands us back here.
- */
-export async function loginWithGoogle(): Promise<void> {
-  const { error } = await getSupabase().auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.href,
-      queryParams: { prompt: 'select_account' },
-    },
-  });
-  if (error) throw error;
+export async function loginWithGoogle(): Promise<AuthUser> {
+  const credential = await signInWithPopup(getFirebaseAuth(), getGoogleProvider());
+  return toAuthUser(credential.user);
 }
 
 export async function logout(): Promise<void> {
-  const { error } = await getSupabase().auth.signOut();
-  if (error) throw error;
+  await firebaseSignOut(getFirebaseAuth());
 }
 
 export function onAuthChange(callback: (user: AuthUser | null) => void): () => void {
@@ -63,16 +54,11 @@ export function onAuthChange(callback: (user: AuthUser | null) => void): () => v
     callback(null);
     return () => undefined;
   }
-  // Fires INITIAL_SESSION synchronously-ish on subscribe, so callers can use
-  // the first call to clear their loading state.
-  const { data: { subscription } } = getSupabase().auth.onAuthStateChange((_event, session) => {
-    callback(session?.user ? toAuthUser(session.user) : null);
-  });
-  return () => subscription.unsubscribe();
+  return onAuthStateChanged(getFirebaseAuth(), (user) => callback(user ? toAuthUser(user) : null));
 }
 
-export async function getCurrentUser(): Promise<AuthUser | null> {
+export function getCurrentUser(): AuthUser | null {
   if (!hasAuthConfig()) return null;
-  const { data } = await getSupabase().auth.getSession();
-  return data.session?.user ? toAuthUser(data.session.user) : null;
+  const user = getFirebaseAuth().currentUser;
+  return user ? toAuthUser(user) : null;
 }

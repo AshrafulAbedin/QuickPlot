@@ -38,7 +38,7 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
 
   const handleGoogle = async () => {
     if (!hasAuthConfig()) {
-      setNotice('Google sign-in needs Supabase settings. Copy code/.env.example to code/.env and add the project values.');
+      setNotice('Google sign-in needs Firebase settings. Copy code/.env.example to code/.env and add the project values.');
       return;
     }
 
@@ -48,7 +48,7 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
       await loginWithGoogle();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Google sign-in failed.';
-      setNotice(`Google sign-in failed: ${message}`);
+      setNotice(message.includes('popup-closed-by-user') ? 'Sign-in was cancelled. Try again when you are ready.' : `Google sign-in failed: ${message}`);
     } finally {
       setSubmitting(false);
     }
