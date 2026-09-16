@@ -1,9 +1,9 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react';
-import type { User } from 'firebase/auth';
 import * as authService from './authService';
+import type { AuthUser } from './authService';
 
 export interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
   error: Error | null;
   login: (email: string, password: string) => Promise<void>;
@@ -15,7 +15,7 @@ export interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

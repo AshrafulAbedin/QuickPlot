@@ -9,8 +9,8 @@ const TYPE_LABELS: Record<EquationEntry['type'], string> = {
   points: 'points',
 }
 
-export function SharedWorkspaceView({ shareId }: { shareId: string }) {
-  const { workspace, status, error } = useSharedWorkspace(shareId)
+export function SharedWorkspaceView({ shareToken }: { shareToken: string }) {
+  const { workspace, status, error } = useSharedWorkspace(shareToken)
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f17', color: '#e0e0e0', padding: '40px 20px' }}>
