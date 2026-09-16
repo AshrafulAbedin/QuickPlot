@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { hasFirebaseConfig, useAuth } from '@quickplot/auth';
 import { GoogleButton } from './GoogleButton';
-import { startGoogleAuth, type AuthIntent } from '../../lib/auth';
+
+export type AuthIntent = 'signin' | 'register';
 
 const COPY: Record<AuthIntent, { title: string; blurb: string; cta: string }> = {
   signin: {
@@ -30,14 +32,58 @@ interface AuthPanelProps {
 
 export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
   const [notice, setNotice] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const { user, loginWithGoogle, signOut } = useAuth();
   const copy = COPY[intent];
 
-  const handleGoogle = () => {
-    // Falls through to a notice until the Neon-backed OAuth route is live.
-    if (!startGoogleAuth(intent)) {
-      setNotice('Google sign-in is not connected yet — the graphers work without an account.');
+  const handleGoogle = async () => {
+    if (!hasFirebaseConfig()) {
+      setNotice('Google sign-in needs Firebase settings. Copy .env.example to .env and add the project values.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setNotice('');
+      await loginWithGoogle();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Google sign-in failed.';
+      setNotice(message.includes('popup-closed-by-user') ? 'Sign-in was cancelled. Try again when you are ready.' : `Google sign-in failed: ${message}`);
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  if (user) {
+    return (
+      <div className="animate-rise w-full max-w-[420px]">
+        <h2 className="font-head text-[30px] font-bold leading-tight tracking-tight text-neutral-50 sm:text-[34px]">You’re signed in</h2>
+        <div className="mt-7 flex items-center gap-4 rounded-xl border border-white/10 bg-ink-700/60 p-4">
+          {user.photoURL ? (
+            <img src={user.photoURL} alt="" className="h-12 w-12 rounded-full" referrerPolicy="no-referrer" />
+          ) : (
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 font-head text-lg font-bold text-ink-900" aria-hidden>
+              {(user.displayName ?? user.email ?? '?').slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="truncate font-medium text-neutral-50">{user.displayName ?? 'QuickPlot user'}</p>
+            <p className="truncate text-sm text-neutral-400">{user.email}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.location.assign(import.meta.env.VITE_URL_2D ?? '/2d/')}
+          className="btn-emboss mt-7 w-full rounded-xl bg-amber-500 px-6 py-4 font-head text-lg font-semibold text-ink-900 [--emboss-base:#9a6b00] hover:bg-amber-400"
+        >
+          Open 2D grapher
+        </button>
+        <button type="button" onClick={() => void signOut()} className="mt-6 w-full text-sm text-neutral-400 underline underline-offset-4 hover:text-amber-400">
+          Sign out
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-rise w-full max-w-[420px]">
@@ -68,7 +114,7 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
       )}
 
       <div className="mt-9">
-        <GoogleButton label={copy.cta} onClick={handleGoogle} />
+        <GoogleButton label={submitting ? 'Opening Google…' : copy.cta} onClick={handleGoogle} disabled={submitting} />
       </div>
 
       {notice && (

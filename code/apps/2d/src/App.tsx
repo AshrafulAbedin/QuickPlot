@@ -26,6 +26,7 @@ import {
 } from './features/workspace/WorkspaceTitle';
 import { Calculator } from './features/calculator/Calculator';
 import { useFocusedInput } from './features/calculator/useFocusedInput';
+import { AuthButton } from './features/auth/AuthButton';
 import type { PlotCurve, SpecialPoint, CanvasTheme } from '@quickplot/renderer';
 import { DEFAULT_THEME } from '@quickplot/renderer';
 
@@ -362,6 +363,7 @@ export default function App() {
           >
             ⌂
           </button>
+          <AuthButton />
         </div>
       </header>
 
