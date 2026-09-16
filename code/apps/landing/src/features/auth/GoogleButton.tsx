@@ -1,6 +1,7 @@
 interface GoogleButtonProps {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
 }
 
 /** Google's four-colour "G", inlined so the button needs no network request. */
@@ -27,15 +28,16 @@ function GoogleMark() {
   );
 }
 
-export function GoogleButton({ label, onClick }: GoogleButtonProps) {
+export function GoogleButton({ label, onClick, disabled = false }: GoogleButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={[
         'btn-emboss flex w-full items-center justify-center gap-3 rounded-xl bg-white px-6 py-4',
         'font-head text-lg font-semibold text-ink-900 [--emboss-base:#c9c1ae]',
-        'hover:bg-paper-50',
+        'hover:bg-paper-50 disabled:cursor-wait disabled:opacity-70',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-800',
       ].join(' ')}
     >

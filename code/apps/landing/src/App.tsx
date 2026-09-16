@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@quickplot/auth';
 import { Backdrop } from './components/Backdrop';
 import { EmbossButton } from './components/EmbossButton';
 import { JumpyWord } from './components/JumpyWord';
@@ -6,7 +7,7 @@ import { Sparks } from './components/Sparks';
 import { useWordCycle } from './hooks/useWordCycle';
 import { AuthPanel } from './features/auth/AuthPanel';
 import { LauncherPanel } from './features/launcher/LauncherPanel';
-import type { AuthIntent } from './lib/auth';
+import type { AuthIntent } from './features/auth/AuthPanel';
 
 /**
  * Which panel the dark half is showing. Kept as local state rather than routes:
@@ -19,6 +20,7 @@ const ROTATING_WORDS = ['seconds', 'one line', '2D & 3D', 'polar', 'real time','
 
 function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: AuthIntent) => void, onStartPlotting: () => void, showLauncher: boolean }) {
   const wordIndex = useWordCycle(ROTATING_WORDS.length);
+  const { user, signOut } = useAuth();
 
   return (
     <div className="animate-rise flex w-full max-w-[420px] flex-col items-center">
@@ -38,6 +40,12 @@ function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: Auth
         </Sparks>
       </p>
 
+      {user ? (
+        <div className="mt-11 w-full text-center">
+          <p className="text-sm text-neutral-300">Signed in as {user.displayName ?? user.email}</p>
+          <button type="button" onClick={() => void signOut()} className="mt-3 text-sm text-amber-500 underline underline-offset-4 hover:text-amber-400">Sign out</button>
+        </div>
+      ) : (
       <nav aria-label="Account" className="mt-11 flex w-full flex-col gap-5">
         <EmbossButton variant="primary" onClick={() => onAuth('signin')}>
           <span className="block text-center font-head text-2xl font-semibold">Sign in</span>
@@ -53,6 +61,7 @@ function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: Auth
           </span>
         </EmbossButton>
       </nav>
+      )}
 
       <div className={`mt-11 transition-opacity duration-500 ${showLauncher ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <p onClick={onStartPlotting} className="flex items-center justify-center gap-2 text-center text-sm font-semibold text-neutral-400 hover:text-amber-400 transition-colors cursor-pointer">
