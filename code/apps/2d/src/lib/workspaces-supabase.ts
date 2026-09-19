@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { parseWorkspaceJson } from './workspace-io'
 import type {
   Workspace,
   CreateWorkspaceInput,
@@ -26,14 +27,15 @@ interface WorkspaceRow {
 }
 
 function rowToWorkspace(r: WorkspaceRow): Workspace {
+  const graph = parseWorkspaceJson(JSON.stringify(r))
   return {
     id: r.id,
     ownerId: r.owner_id,
     title: r.title,
-    equations: r.equations ?? [],
-    viewport: r.viewport,
-    sliders: r.sliders ?? [],
-    theme: r.theme ?? undefined,
+    equations: graph.equations,
+    viewport: graph.viewport,
+    sliders: graph.sliders,
+    theme: graph.theme,
     shared: r.shared,
     shareId: r.share_id ?? undefined,
     createdAt: r.created_at,
@@ -53,6 +55,7 @@ function generateShareId(): string {
 export async function createWorkspace(
   input: CreateWorkspaceInput,
 ): Promise<Workspace> {
+  parseWorkspaceJson(JSON.stringify(input))
   const row = {
     owner_id: input.ownerId,
     title: input.title,
@@ -97,7 +100,7 @@ export async function updateWorkspace(
   if (updates.shared !== undefined) row.shared = updates.shared
   if (updates.shareId !== undefined) row.share_id = updates.shareId
 
-  const { error } = await supabase.from(TABLE).update(row).eq('id', id)
+  const { error } = await supabase.from(TABLE).update(row).eq('id', id).select('id').single()
   if (error) throw new Error(error.message)
 }
 

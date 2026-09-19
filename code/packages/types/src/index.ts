@@ -39,6 +39,8 @@ export interface CanvasTheme {
   gridColor: string
   axisColor: string
   textColor: string
+  minorLine?: string
+  majorLine?: string
 }
 
 export interface UserProfile {
