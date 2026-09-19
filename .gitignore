@@ -1,0 +1,19 @@
+# AI assistant files (not part of the project)
+CLAUDE.md
+.claude/
+.sixth/
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.turbo/
+
+# Environment files
+.env
+.env.local
+*.env.local
+C:\Users\ASUS\Desktop\QuickPlot\docs\Design\ERD_and_Wireframe.md
+.gstack/
