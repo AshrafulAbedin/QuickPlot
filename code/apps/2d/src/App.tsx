@@ -1,5 +1,5 @@
 import {
-  useState, useMemo, useRef, useCallback,
+  useState, useMemo, useRef, useCallback, lazy, Suspense,
 } from 'react';
 import {
   validateExpression,
@@ -19,8 +19,15 @@ import type { Slider } from './features/sliders/SliderPanel';
 import { useSliders } from './features/sliders/useSliders';
 import { ThemePicker } from './features/theme/ThemePicker';
 import { AuthButton } from './features/auth/AuthButton';
+import { useAuth } from './features/auth';
+import type { Workspace } from '@quickplot/types';
+import { restoreEquations, restoreTheme, saveTheme } from './features/workspace/graph-snapshot';
 import type { PlotCurve, SpecialPoint, CanvasTheme } from '@quickplot/renderer';
 import { DEFAULT_THEME } from '@quickplot/renderer';
+
+const WorkspacePanel = lazy(() => import('./features/workspace/WorkspacePanel').then(m => ({ default: m.WorkspacePanel })));
+const SharedWorkspaceView = lazy(() => import('./features/workspace/SharedWorkspaceView').then(m => ({ default: m.SharedWorkspaceView })));
+const hasStorageConfig = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 // ── URL hash codec ────────────────────────────────────────────────────────
 interface HashPayload {
@@ -83,11 +90,12 @@ const _fromHash = loadFromHash();
 const DEFAULTS: ReturnType<typeof useEquations>['equations'] = [];
 
 export default function App() {
+  const { user } = useAuth();
   const canvasHandle = useRef<Canvas2DHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { equations, update, add, remove, addPoints } = useEquations(_fromHash?.equations ?? DEFAULTS);
-  const { sliders, sliderScope, animating, onChange: sliderChange, onRangeChange: sliderRangeChange, toggleAnimation } =
+  const { equations, setEquations, update, add, remove, addPoints } = useEquations(_fromHash?.equations ?? DEFAULTS);
+  const { sliders, restoreSliders, sliderScope, animating, onChange: sliderChange, onRangeChange: sliderRangeChange, toggleAnimation } =
     useSliders(equations, _fromHash?.sliders);
   const { activeTraces, traceSnap, startTrace } = useTraceAnimation();
 
@@ -99,6 +107,22 @@ export default function App() {
   const [ptY,           setPtY]           = useState('');
   const [sidebarOpen,   setSidebarOpen]   = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
+
+  const getSnapshot = () => ({
+    equations: equations.map(({ error: _error, errorY: _errorY, ...entry }) => entry),
+    sliders: Object.values(sliders),
+    viewport: canvasHandle.current!.getViewport(),
+    theme: saveTheme(theme),
+  });
+
+  const loadWorkspace = (workspace: Workspace) => {
+    setEquations(restoreEquations(workspace.equations));
+    restoreSliders(Object.fromEntries(workspace.sliders.map(s => [s.name, s])));
+    setTheme(workspace.theme ? restoreTheme(workspace.theme) : DEFAULT_THEME);
+    canvasHandle.current?.restoreViewport(workspace.viewport);
+    // A previously shared URL hash must not override the loaded graph on refresh.
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  };
 
   // ── derive PlotCurves ───────────────────────────────────────────────────
   const curves = useMemo<PlotCurve[]>(() =>
@@ -221,6 +245,13 @@ export default function App() {
     brief('link');
   }, [equations, sliders]);
 
+  const sharedId = new URLSearchParams(window.location.search).get('shared');
+  if (sharedId) {
+    return hasStorageConfig
+      ? <Suspense fallback={<p className="p-4 text-neutral-300">Loading shared workspace…</p>}><SharedWorkspaceView shareId={sharedId} /></Suspense>
+      : <p className="p-4 text-neutral-300">Cloud workspace storage is not configured.</p>;
+  }
+
   return (
     <div className="flex flex-col h-full bg-neutral-900">
       {/* ── header ── */}
@@ -312,6 +343,14 @@ export default function App() {
 
           {/* ── panel content (hidden when collapsed) ── */}
           {sidebarOpen && <>
+
+            {user && hasStorageConfig ? (
+              <Suspense fallback={<p className="p-4 text-neutral-400">Loading workspaces…</p>}>
+                <WorkspacePanel key={user.uid} getSnapshot={getSnapshot} onLoad={loadWorkspace} />
+              </Suspense>
+            ) : (
+              <p className="p-3 text-xs text-neutral-400">{!user ? 'Sign in to save and load workspaces.' : 'Cloud workspace storage is not configured.'}</p>
+            )}
 
             {/* equations */}
             <div className="p-3">

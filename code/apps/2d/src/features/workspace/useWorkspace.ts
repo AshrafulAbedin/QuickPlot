@@ -13,8 +13,8 @@ interface UseWorkspaceReturn {
   loading: boolean
   error: string | null
   create: (input: CreateWorkspaceInput) => Promise<Workspace | null>
-  load: (id: string) => Promise<void>
-  update: (updates: UpdateWorkspaceInput) => Promise<void>
+  load: (id: string) => Promise<Workspace | null>
+  update: (updates: UpdateWorkspaceInput) => Promise<boolean>
   remove: () => Promise<void>
   removeById: (id: string) => Promise<boolean>
   toggleSharing: (shared: boolean) => Promise<string | null>
@@ -48,25 +48,29 @@ export function useWorkspace(): UseWorkspaceReturn {
       const ws = await getWorkspace(id)
       if (!ws) {
         setError('Workspace not found')
-        return
+        return null
       }
       setWorkspace(ws)
+      return ws
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load workspace')
+      return null
     } finally {
       setLoading(false)
     }
   }, [])
 
   const update = useCallback(async (updates: UpdateWorkspaceInput) => {
-    if (!workspace) return
+    if (!workspace) return false
     setLoading(true)
     setError(null)
     try {
       await updateWs(workspace.id, updates)
       setWorkspace(prev => prev ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : null)
+      return true
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update workspace')
+      return false
     } finally {
       setLoading(false)
     }

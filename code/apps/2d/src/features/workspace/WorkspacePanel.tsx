@@ -5,10 +5,16 @@ import { useWorkspaceList } from './useWorkspaceList'
 import { downloadWorkspace, parseWorkspaceJson } from '../../lib/workspace-io'
 import type { CreateWorkspaceInput, Workspace } from '@quickplot/types'
 
-export function WorkspacePanel() {
+type GraphSnapshot = Pick<Workspace, 'equations' | 'viewport' | 'sliders' | 'theme'>
+
+export function WorkspacePanel({ getSnapshot, onLoad }: {
+  getSnapshot: () => GraphSnapshot
+  onLoad: (workspace: Workspace) => void
+}) {
   const { user } = useAuth()
-  const { workspace, create, load, removeById, toggleSharing, loading, error } = useWorkspace()
-  const { workspaces, fetchList, removeLocal, addLocal, loading: listLoading } = useWorkspaceList()
+  const { workspace, create, load, update, removeById, toggleSharing, loading, error } = useWorkspace()
+  const { workspaces, fetchList, removeLocal, addLocal, loading: listLoading, error: listError } = useWorkspaceList()
+  const [notice, setNotice] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -30,17 +36,34 @@ export function WorkspacePanel() {
     const input: CreateWorkspaceInput = {
       ownerId: user!.uid,
       title,
-      equations: [],
-      viewport: { xMin: -10, xMax: 10, yMin: -10, yMax: 10 },
-      sliders: [],
+      ...getSnapshot(),
       shared: false,
     }
     const created = await create(input)
-    if (created) addLocal(created)
+    if (created) {
+      addLocal(created)
+      setShareUrl(null)
+      setNotice('Saved.')
+    }
+  }
+
+  async function handleUpdate() {
+    setNotice(null)
+    if (await update(getSnapshot())) {
+      setNotice('Saved.')
+      await fetchList(user!.uid)
+    }
   }
 
   async function handleLoad(ws: Workspace) {
-    await load(ws.id)
+    if (!window.confirm('Open this workspace? Unsaved graph changes will be replaced.')) return
+    setNotice(null)
+    setShareUrl(null)
+    const loaded = await load(ws.id)
+    if (loaded) {
+      onLoad(loaded)
+      setNotice('Loaded.')
+    }
   }
 
   async function handleDelete(ws: Workspace) {
@@ -51,7 +74,7 @@ export function WorkspacePanel() {
   }
 
   function shareUrlFor(shareId: string) {
-    return `${window.location.origin}/shared/${shareId}`
+    return `${window.location.origin}${import.meta.env.BASE_URL}?shared=${encodeURIComponent(shareId)}`
   }
 
   async function copyToClipboard(url: string) {
@@ -94,7 +117,11 @@ export function WorkspacePanel() {
         theme: parsed.theme,
         shared: false,
       })
-      if (created) addLocal(created)
+      if (created) {
+        addLocal(created)
+        setShareUrl(null)
+        setNotice('Imported and saved. Open it from the list to load its graph.')
+      }
     } catch (err) {
       window.alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`)
     }
@@ -107,6 +134,7 @@ export function WorkspacePanel() {
         <div className="flex gap-2">
           <button
             onClick={handleImportClick}
+            disabled={loading}
             className="px-3 py-1 text-xs rounded bg-neutral-600/50 text-neutral-200 hover:bg-neutral-600"
           >
             Import
@@ -130,6 +158,8 @@ export function WorkspacePanel() {
       />
 
       {error && <p className="text-xs text-red-400">{error}</p>}
+      {listError && <p role="alert" className="text-xs text-red-400">{listError}</p>}
+      {notice && !error && <p role="status" className="text-xs text-green-300">{notice}</p>}
 
       {workspace && (
         <div className="p-2 rounded bg-neutral-700/50 border border-neutral-600">
@@ -137,6 +167,7 @@ export function WorkspacePanel() {
             Active: <span className="text-amber-400">{workspace.title}</span>
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
+            <button onClick={handleUpdate} disabled={loading} className="text-xs px-2 py-1 rounded bg-blue-600 text-white disabled:opacity-50">Save changes</button>
             {workspace.shared ? (
               <button onClick={handleCopyLink} className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400 hover:bg-green-600/30">Copy link</button>
             ) : (
@@ -155,11 +186,11 @@ export function WorkspacePanel() {
         {listLoading && <p className="text-xs text-neutral-500">Loading...</p>}
         {workspaces.map(ws => (
           <div key={ws.id} className="flex items-center justify-between p-2 rounded hover:bg-neutral-700/50 group">
-            <button onClick={() => handleLoad(ws)} className="text-xs text-neutral-300 hover:text-white text-left truncate flex-1">
+            <button onClick={() => handleLoad(ws)} disabled={loading} className="text-xs text-neutral-300 hover:text-white text-left truncate flex-1">
               {ws.title}
               <span className="block text-[10px] text-neutral-500">{new Date(ws.updatedAt).toLocaleDateString()}</span>
             </button>
-            <button onClick={() => handleDelete(ws)} className="text-xs text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-1" title="Delete">✕</button>
+            <button onClick={() => handleDelete(ws)} disabled={loading} className="text-xs text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-1" title="Delete">✕</button>
           </div>
         ))}
         {!listLoading && workspaces.length === 0 && (
