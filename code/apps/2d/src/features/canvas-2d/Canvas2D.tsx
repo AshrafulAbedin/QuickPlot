@@ -7,10 +7,12 @@ import {
   pan   as panVP,
   zoom  as zoomVP,
   screenToWorld,
+  visibleRange,
   drawGrid, drawCurves,
   type PlotCurve, type SpecialPoint,
   type CanvasTheme, DEFAULT_THEME,
 } from '@quickplot/renderer';
+import type { ViewportState } from '@quickplot/types';
 
 // Precision: number of decimal places appropriate for the current zoom level
 function coordPrec(scale: number): number {
@@ -26,6 +28,8 @@ interface Props {
 export interface Canvas2DHandle {
   copyImage(): Promise<void>;
   resetView(): void;
+  getViewport(): ViewportState;
+  restoreViewport(bounds: ViewportState): void;
 }
 
 export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
@@ -67,6 +71,18 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
     },
     resetView() {
       setViewport(vp => ({ ...DEFAULT_VIEWPORT, width: vp.width, height: vp.height }));
+    },
+    getViewport() {
+      return visibleRange(viewport);
+    },
+    restoreViewport(bounds) {
+      setViewport(vp => ({
+        ...vp,
+        offsetX: (bounds.xMin + bounds.xMax) / 2,
+        offsetY: (bounds.yMin + bounds.yMax) / 2,
+        // Fit the saved area without stretching either axis on another screen.
+        scale: Math.min(vp.width / (bounds.xMax - bounds.xMin), vp.height / (bounds.yMax - bounds.yMin)),
+      }));
     },
   }));
 

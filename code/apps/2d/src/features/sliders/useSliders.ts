@@ -96,5 +96,11 @@ export function useSliders(
     });
   }, []);
 
-  return { sliders, setSliders, sliderScope, animating, onChange, onRangeChange, toggleAnimation };
+  const restoreSliders = useCallback((next: Record<string, Slider>) => {
+    setAnimating(new Set());
+    animDirRef.current = {};
+    setSliders(next);
+  }, []);
+
+  return { sliders, setSliders, restoreSliders, sliderScope, animating, onChange, onRangeChange, toggleAnimation };
 }
