@@ -64,7 +64,7 @@ function LauncherCard({ label, hint, icon, href, onClick, external = false }: La
           {icon}
         </span>
         <span className="min-w-0 grow">
-          <span className="block font-head text-lg font-bold tracking-wide text-ink-900">{label}</span>
+          <span className="block font-head text-[22px] font-bold tracking-wide text-ink-900">{label}</span>
           <span className="mt-1 block text-[13px] font-light leading-snug text-paper-600">
             {hint}
           </span>
@@ -96,11 +96,8 @@ export function LauncherPanel() {
         <ToolsPanel onBack={() => setShowTools(false)} />
       ) : (
         <div className="animate-rise w-full max-w-[440px]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-paper-600">
-            Open a workspace
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold text-ink-900">
-            Start plotting — no account needed
+          <h2 className="font-head text-3xl font-bold tracking-tight text-ink-900">
+            Start Plotting
           </h2>
 
           <div className="mt-8 flex flex-col gap-4">
@@ -126,9 +123,7 @@ export function LauncherPanel() {
             />
           </div>
 
-          <p className="mt-9 text-xs font-light leading-relaxed text-paper-600">
-            The graphers open in a new tab. Sign in only if you want to save what you build.
-          </p>
+
         </div>
       )}
     </div>

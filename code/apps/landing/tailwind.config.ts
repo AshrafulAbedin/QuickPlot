@@ -11,6 +11,7 @@ export default {
         // with Windows and macOS; Comic Neue is the webfont fallback so Linux
         // and Android get the same feel instead of a generic cursive.
         hand: ['"Comic Sans MS"', '"Comic Neue"', 'cursive'],
+        mono: ['"JetBrains Mono"', 'monospace'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
@@ -20,6 +21,23 @@ export default {
           800: '#1c1a17',
           700: '#242119',
           600: '#2e2a23',
+        },
+        // Accent. Shifted one step lighter than stock Tailwind amber so the
+        // highlight reads as a warm yellow-orange rather than a deep amber.
+        // Only 400/500 move: they are the steps used on the dark half. 600/700
+        // sit on the light `amber-100` chips, where lightening them would drop
+        // the text below AA contrast.
+        amber: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fcd34d',
+          500: '#fbbf24',
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
         },
         // Warm off-white half. Tuned to sit next to `ink` without going blue.
         paper: {

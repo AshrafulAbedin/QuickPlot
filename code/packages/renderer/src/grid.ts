@@ -61,7 +61,7 @@ export const THEMES: Record<string, CanvasTheme> = {
   },
 };
 
-export const DEFAULT_THEME: CanvasTheme = THEMES.cork;
+export const DEFAULT_THEME: CanvasTheme = THEMES.paper;
 
 // ── helpers ────────────────────────────────────────────────────────────────
 const PIXEL_FONT = '"Press Start 2P", monospace';

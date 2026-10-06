@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite build --watch",
-    "build": "vite build"
+    "dev": "echo \"[extension] not implemented yet — no sources to watch\"",
+    "build": "echo \"[extension] not implemented yet — skipping build\"",
+    "test": "echo \"[extension] no tests yet\""
   }
 }

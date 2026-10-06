@@ -18,7 +18,7 @@ export function SurfaceRow({ surface, autoFocus, onChange, onDelete, error }: Pr
   const hidden = surface.hidden ?? false;
 
   return (
-    <div className="space-y-1 pb-2 border-b border-neutral-700/50 last:border-0">
+    <div className="space-y-1 pb-2 border-b border-[#161412]/50 last:border-0">
       <div className="flex items-center gap-1.5">
         <button
           title="Change colour"
