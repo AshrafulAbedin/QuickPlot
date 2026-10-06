@@ -15,3 +15,93 @@ body,
   margin: 0;
   overflow: hidden;
 }
+
+.plot-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid #ffffff12;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.plot-account-avatar {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ffffff18;
+}
+.plot-account-initial {
+  display: grid;
+  place-items: center;
+  background: #fbbf2415;
+  color: #fcd34d;
+  font-size: 12px;
+  font-weight: 600;
+}
+.plot-account-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #e7e5e4;
+  font-size: 12px;
+}
+.plot-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  color: #a8a29e;
+  font-size: 11px;
+  white-space: nowrap;
+  transition: color 150ms, background 150ms;
+}
+.plot-signout:hover { color: #fafaf9; background: #ffffff08; }
+.plot-workspaces {
+  padding: 16px 12px;
+  border-bottom: 1px solid #ffffff0a;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.plot-workspaces > * + * { margin-top: 12px; }
+.plot-workspace-heading { display: flex; align-items: center; gap: 8px; }
+.plot-workspace-heading h3 { color: #e7e5e4; font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.plot-workspace-count { padding: 1px 6px; border-radius: 5px; background: #ffffff06; color: #78716c; font-size: 10px; }
+.plot-workspace-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.plot-workspace-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-height: 33px;
+  padding: 6px 9px;
+  border: 1px solid #ffffff12;
+  border-radius: 7px;
+  background: #ffffff04;
+  color: #d6d3d1;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 150ms, border-color 150ms;
+}
+.plot-workspace-button svg { width: 13px; height: 13px; flex-shrink: 0; }
+.plot-workspace-button:hover { background: #ffffff09; border-color: #ffffff25; }
+.plot-workspace-primary { background: #fbbf2414; border-color: #fbbf2430; color: #fcd34d; }
+.plot-workspace-primary:hover { background: #fbbf2422; border-color: #fbbf2455; }
+.plot-workspace-button:disabled { opacity: .45; cursor: wait; }
+.plot-workspace-empty { padding: 18px 8px 12px; text-align: center; border: 1px dashed #ffffff0d; border-radius: 9px; }
+.plot-workspace-empty svg { width: 28px; height: 28px; margin: 0 auto 10px; color: #a8a29e; }
+.plot-workspace-empty p { color: #d6d3d1; font-size: 11px; font-weight: 500; }
+.plot-workspace-empty span { display: block; margin-top: 5px; color: #a8a29e; font-size: 10px; line-height: 1.5; }
+.plot-workspace-active { padding: 10px; background: #fbbf2405; border: 1px solid #fbbf241c; border-radius: 8px; }
+.plot-workspace-row { display: flex; align-items: center; gap: 8px; padding: 9px 8px; border-radius: 7px; }
+.plot-workspace-row:hover { background: #ffffff05; }
+.plot-workspace-delete { padding: 5px; color: #a8a29e; font-size: 11px; border-radius: 4px; }
+.plot-workspace-delete:hover { color: #fca5a5; background: #ef444412; }
+.plot-workspace-button:focus-visible, .plot-signout:focus-visible, .plot-workspace-delete:focus-visible { outline: 2px solid #fbbf24; outline-offset: 3px; }
+@media (max-width: 800px) {
+  .plot-account-name, .plot-signout span { display: none; }
+  .plot-account { gap: 5px; padding-left: 8px; }
+}

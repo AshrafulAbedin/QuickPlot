@@ -78,6 +78,13 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
         >
           Open 2D grapher
         </button>
+        <button
+          type="button"
+          onClick={() => window.location.assign(import.meta.env.VITE_URL_3D ?? '/3d/')}
+          className="btn-emboss mt-4 w-full rounded-xl bg-amber-500 px-6 py-4 font-head text-lg font-semibold text-ink-900 [--emboss-base:#9a6b00] hover:bg-amber-400"
+        >
+          Open 3D grapher
+        </button>
         <button type="button" onClick={() => void signOut()} className="mt-6 w-full text-sm text-neutral-400 underline underline-offset-4 hover:text-amber-400">
           Sign out
         </button>

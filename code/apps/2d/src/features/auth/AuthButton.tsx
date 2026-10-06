@@ -9,20 +9,30 @@ export function AuthButton() {
 
   if (user) {
     return (
-      <div className="flex items-center gap-3">
-        {user.photoURL && (
+      <div className="plot-account">
+        {user.photoURL ? (
           <img
             src={user.photoURL}
             alt={user.displayName ?? 'User avatar'}
-            className="w-8 h-8 rounded-full"
+            className="plot-account-avatar"
+            referrerPolicy="no-referrer"
           />
+        ) : (
+          <span className="plot-account-avatar plot-account-initial" aria-hidden="true">
+            {(user.displayName || user.email || 'U').slice(0, 1).toUpperCase()}
+          </span>
         )}
-        <span className="text-sm">{user.displayName || user.email}</span>
+        <span className="plot-account-name" title={user.displayName || user.email || 'Account'}>{user.displayName || user.email}</span>
         <button
           onClick={signOut}
-          className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition"
+          className="plot-signout"
+          title="Sign out"
+          aria-label="Sign out"
         >
-          Log out
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+            <path d="M10 5H5v14h5M14 8l4 4-4 4M9 12h9" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>Sign out</span>
         </button>
       </div>
     )

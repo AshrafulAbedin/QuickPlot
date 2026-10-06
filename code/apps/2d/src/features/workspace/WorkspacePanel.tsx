@@ -128,25 +128,28 @@ export function WorkspacePanel({ getSnapshot, onLoad }: {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-neutral-200">Workspaces</h3>
-        <div className="flex gap-2">
+    <section className="plot-workspaces" aria-label="Saved workspaces">
+      <div className="plot-workspace-heading">
+        <h3>Workspaces</h3>
+        <span className="plot-workspace-count">{workspaces.length}</span>
+      </div>
+      <div className="plot-workspace-actions">
           <button
             onClick={handleImportClick}
             disabled={loading}
-            className="px-3 py-1 text-xs rounded bg-neutral-600/50 text-neutral-200 hover:bg-neutral-600"
+            className="plot-workspace-button"
           >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
             Import
           </button>
           <button
             onClick={handleSave}
             disabled={loading}
-            className="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="plot-workspace-button plot-workspace-primary"
           >
-            + Save New
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
+            Save new
           </button>
-        </div>
       </div>
 
       <input
@@ -162,12 +165,12 @@ export function WorkspacePanel({ getSnapshot, onLoad }: {
       {notice && !error && <p role="status" className="text-xs text-green-300">{notice}</p>}
 
       {workspace && (
-        <div className="p-2 rounded bg-neutral-700/50 border border-neutral-600">
+        <div className="plot-workspace-active">
           <p className="text-xs text-neutral-300">
             Active: <span className="text-amber-400">{workspace.title}</span>
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <button onClick={handleUpdate} disabled={loading} className="text-xs px-2 py-1 rounded bg-blue-600 text-white disabled:opacity-50">Save changes</button>
+            <button onClick={handleUpdate} disabled={loading} className="plot-workspace-button plot-workspace-primary">Save changes</button>
             {workspace.shared ? (
               <button onClick={handleCopyLink} className="text-xs px-2 py-1 rounded bg-green-600/20 text-green-400 hover:bg-green-600/30">Copy link</button>
             ) : (
@@ -185,18 +188,22 @@ export function WorkspacePanel({ getSnapshot, onLoad }: {
       <div className="space-y-1">
         {listLoading && <p className="text-xs text-neutral-500">Loading...</p>}
         {workspaces.map(ws => (
-          <div key={ws.id} className="flex items-center justify-between p-2 rounded hover:bg-neutral-700/50 group">
+          <div key={ws.id} className="plot-workspace-row group">
             <button onClick={() => handleLoad(ws)} disabled={loading} className="text-xs text-neutral-300 hover:text-white text-left truncate flex-1">
               {ws.title}
               <span className="block text-[10px] text-neutral-500">{new Date(ws.updatedAt).toLocaleDateString()}</span>
             </button>
-            <button onClick={() => handleDelete(ws)} disabled={loading} className="text-xs text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-1" title="Delete">✕</button>
+            <button onClick={() => handleDelete(ws)} disabled={loading} className="plot-workspace-delete" title={`Delete ${ws.title}`} aria-label={`Delete ${ws.title}`}>✕</button>
           </div>
         ))}
-        {!listLoading && workspaces.length === 0 && (
-          <p className="text-xs text-neutral-500">No saved workspaces yet.</p>
+        {!listLoading && !listError && workspaces.length === 0 && (
+          <div className="plot-workspace-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3V7Z" strokeLinejoin="round" /><path d="M9 13h6m-3-3v6" strokeLinecap="round" /></svg>
+            <p>Your next idea starts here</p>
+            <span>Save a graph to pick it up later.</span>
+          </div>
         )}
       </div>
-    </div>
+    </section>
   )
 }
