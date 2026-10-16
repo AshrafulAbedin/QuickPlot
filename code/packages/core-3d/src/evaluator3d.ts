@@ -1,5 +1,6 @@
 import { compile } from 'mathjs';
 import type { EvalFunction } from 'mathjs';
+import { expandImplicitMultiplication } from './parser';
 
 const cache3d = new Map<string, EvalFunction>();
 
@@ -12,7 +13,8 @@ function getCached3d(expr: string): EvalFunction {
 }
 
 function normalize3d(raw: string): string {
-  return raw.replace(/^z\s*=\s*/, '').trim();
+  const stripped = raw.replace(/^z\s*=\s*/, '').trim();
+  return expandImplicitMultiplication(stripped);
 }
 
 export function evaluate3D(

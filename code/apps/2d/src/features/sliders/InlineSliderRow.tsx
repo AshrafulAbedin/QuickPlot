@@ -6,6 +6,7 @@ interface Props {
   animating: boolean;
   onChange: (value: number) => void;
   onRangeChange: (min: number, max: number) => void;
+  onStepChange?: (step: number) => void;
   onToggleAnimation: () => void;
   onLoopModeChange: (mode: 'pingpong' | 'wrap') => void;
 }
@@ -17,28 +18,31 @@ function fmt(v: number): string {
 
 function IconPlay() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden focusable="false">
-      <path d="M7 4l12 8-12 8V4z" />
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden focusable="false">
+      <path d="M8 5v14l11-7z" />
     </svg>
   );
 }
+
 function IconPause() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden focusable="false">
-      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden focusable="false">
+      <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
     </svg>
   );
 }
+
 function IconPingpong() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none" strokeWidth="2" aria-hidden focusable="false">
-      <path d="M4 12h16M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none" strokeWidth="2.2" aria-hidden focusable="false">
+      <path d="M4 12h16M4 12l3.5-3.5M4 12l3.5 3.5M20 12l-3.5-3.5M20 12l-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
+
 function IconWrap() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none" strokeWidth="2" aria-hidden focusable="false">
+    <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none" strokeWidth="2.2" aria-hidden focusable="false">
       <path d="M4 8a4 4 0 014-4h8a4 4 0 014 4v8a4 4 0 01-4 4H8" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M8 20l-3-3M8 20l3-3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -46,15 +50,14 @@ function IconWrap() {
 }
 
 export function InlineSliderRow({
-  slider, animating, onChange, onRangeChange, onToggleAnimation, onLoopModeChange,
+  slider, animating, onChange, onRangeChange, onStepChange, onToggleAnimation, onLoopModeChange,
 }: Props) {
   const pct = slider.max === slider.min
     ? 0
-    : ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+    : Math.min(100, Math.max(0, ((slider.value - slider.min) / (slider.max - slider.min)) * 100));
   const loopMode = slider.loopMode ?? 'pingpong';
 
-  // Local draft for the inline value input so the user can type freely
-  // without every keystroke re-clamping to min/max.
+  // Local draft for the inline value input
   const [valueDraft, setValueDraft] = useState(fmt(slider.value));
   const editingRef = useRef(false);
   useEffect(() => {
@@ -73,34 +76,67 @@ export function InlineSliderRow({
     }
   };
 
+  const handleMinChange = (raw: string) => {
+    const val = parseFloat(raw);
+    if (Number.isFinite(val)) {
+      onRangeChange(val, slider.max);
+    }
+  };
+
+  const handleMaxChange = (raw: string) => {
+    const val = parseFloat(raw);
+    if (Number.isFinite(val)) {
+      onRangeChange(slider.min, val);
+    }
+  };
+
+  const handleStepChange = (raw: string) => {
+    const val = parseFloat(raw);
+    if (Number.isFinite(val) && val > 0 && onStepChange) {
+      onStepChange(val);
+    }
+  };
+
   return (
-    <div className="pt-1 pb-0.5 pl-4 pr-1 space-y-1">
-      {/* label + value */}
-      <div className="flex items-center gap-1.5 text-xs">
-        <button
-          title={animating ? 'Pause' : 'Play'}
-          onClick={onToggleAnimation}
-          className={[
-            'shrink-0 leading-none transition-colors',
-            animating ? 'text-amber-400 hover:text-amber-300' : 'text-neutral-500 hover:text-neutral-300',
-          ].join(' ')}
-        >
-          {animating ? <IconPause /> : <IconPlay />}
-        </button>
+    <div className="pt-2 pb-1.5 pl-3 pr-2 my-1 rounded-md bg-[#1d1b18]/60 border border-neutral-800/80 shadow-sm space-y-1.5 transition-colors hover:border-neutral-700/80">
+      {/* Header: animation controls + label + current value */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            title={animating ? 'Pause animation' : 'Play animation'}
+            onClick={onToggleAnimation}
+            className={[
+              'w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 active:scale-95',
+              animating
+                ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/20 hover:bg-amber-400'
+                : 'bg-neutral-800 text-neutral-400 hover:text-amber-300 hover:bg-neutral-700',
+            ].join(' ')}
+          >
+            {animating ? <IconPause /> : <IconPlay />}
+          </button>
 
-        <button
-          title={loopMode === 'pingpong' ? 'Loop: ping-pong (click for wrap)' : 'Loop: wrap (click for ping-pong)'}
-          onClick={() => onLoopModeChange(loopMode === 'pingpong' ? 'wrap' : 'pingpong')}
-          className={[
-            'shrink-0 leading-none transition-colors',
-            loopMode === 'wrap' ? 'text-amber-400 hover:text-amber-300' : 'text-neutral-500 hover:text-neutral-300',
-          ].join(' ')}
-        >
-          {loopMode === 'pingpong' ? <IconPingpong /> : <IconWrap />}
-        </button>
+          <button
+            type="button"
+            title={loopMode === 'pingpong' ? 'Loop mode: Ping-pong (click to switch to Wrap)' : 'Loop mode: Wrap (click to switch to Ping-pong)'}
+            onClick={() => onLoopModeChange(loopMode === 'pingpong' ? 'wrap' : 'pingpong')}
+            className={[
+              'w-5 h-5 rounded-md flex items-center justify-center transition-all shrink-0 active:scale-95',
+              loopMode === 'wrap'
+                ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30'
+                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800',
+            ].join(' ')}
+          >
+            {loopMode === 'pingpong' ? <IconPingpong /> : <IconWrap />}
+          </button>
 
-        <span className="text-amber-300 font-pixel">{slider.name}</span>
-        <span className="text-neutral-500 font-mono">=</span>
+          <div className="flex items-center gap-1 font-mono text-xs">
+            <span className="text-amber-400 font-pixel font-bold">{slider.name}</span>
+            <span className="text-neutral-500">=</span>
+          </div>
+        </div>
+
+        {/* Editable current value with focus glow */}
         <input
           type="text"
           value={valueDraft}
@@ -115,41 +151,71 @@ export function InlineSliderRow({
               (e.target as HTMLInputElement).blur();
             }
           }}
-          className="w-16 bg-neutral-700 text-neutral-200 text-xs rounded px-1 py-0.5 font-mono outline-none text-center focus:ring-1 focus:ring-amber-500"
+          className="w-16 bg-neutral-900/90 text-neutral-200 text-xs font-mono rounded px-1.5 py-0.5 border border-neutral-700/80 outline-none text-right focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
         />
       </div>
 
-      {/* track */}
-      <input
-        type="range"
-        min={slider.min}
-        max={slider.max}
-        step={slider.step}
-        value={slider.value}
-        className="w-full accent-amber-400 h-1.5 cursor-pointer"
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-      />
-
-      {/* min / bar / max */}
-      <div className="flex justify-between gap-1">
-        <input
-          type="number"
-          value={slider.min}
-          step={0.5}
-          className="w-12 bg-neutral-700 text-neutral-400 text-[10px] rounded px-1 py-0.5 font-mono outline-none text-center"
-          onChange={(e) => onRangeChange(parseFloat(e.target.value) || slider.min, slider.max)}
-        />
+      {/* Styled track with active gradient fill */}
+      <div className="relative flex items-center py-0.5">
         <div
-          className="flex-1 h-0.5 self-center rounded-full"
-          style={{ background: `linear-gradient(to right, #f59e0b ${pct}%, #404040 ${pct}%)` }}
+          className="absolute left-0 h-1.5 rounded-full pointer-events-none transition-all"
+          style={{
+            width: `${pct}%`,
+            background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+          }}
         />
         <input
-          type="number"
-          value={slider.max}
-          step={0.5}
-          className="w-12 bg-neutral-700 text-neutral-400 text-[10px] rounded px-1 py-0.5 font-mono outline-none text-center"
-          onChange={(e) => onRangeChange(slider.min, parseFloat(e.target.value) || slider.max)}
+          type="range"
+          min={slider.min}
+          max={slider.max}
+          step={slider.step}
+          value={slider.value}
+          className="custom-range-slider"
+          onChange={(e) => onChange(parseFloat(e.target.value))}
         />
+      </div>
+
+      {/* Range constraints: min bound, step size, max bound */}
+      <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono gap-1.5 pt-0.5">
+        <div className="flex items-center gap-1">
+          <span className="text-neutral-500 text-[9px] uppercase tracking-wider">min</span>
+          <input
+            type="number"
+            defaultValue={slider.min}
+            key={`min-${slider.min}`}
+            step={0.5}
+            onBlur={(e) => handleMinChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-11 bg-neutral-900/80 text-neutral-300 rounded px-1 py-0.5 border border-neutral-800 text-center outline-none focus:border-amber-400/60"
+          />
+        </div>
+
+        <div className="flex items-center gap-1">
+          <span className="text-neutral-500 text-[9px] uppercase tracking-wider">step</span>
+          <input
+            type="number"
+            defaultValue={slider.step}
+            key={`step-${slider.step}`}
+            step={0.01}
+            min={0.0001}
+            onBlur={(e) => handleStepChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-12 bg-neutral-900/80 text-neutral-300 rounded px-1 py-0.5 border border-neutral-800 text-center outline-none focus:border-amber-400/60"
+          />
+        </div>
+
+        <div className="flex items-center gap-1">
+          <span className="text-neutral-500 text-[9px] uppercase tracking-wider">max</span>
+          <input
+            type="number"
+            defaultValue={slider.max}
+            key={`max-${slider.max}`}
+            step={0.5}
+            onBlur={(e) => handleMaxChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-11 bg-neutral-900/80 text-neutral-300 rounded px-1 py-0.5 border border-neutral-800 text-center outline-none focus:border-amber-400/60"
+          />
+        </div>
       </div>
     </div>
   );

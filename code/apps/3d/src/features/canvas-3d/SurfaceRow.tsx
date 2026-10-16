@@ -1,5 +1,6 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { Surface } from './Renderer3D';
+import { ColorPalettePopover } from './ColorPalettePopover';
 
 interface Props {
   surface: Surface;
@@ -7,32 +8,43 @@ interface Props {
   onChange: (patch: Partial<Surface>) => void;
   onDelete: () => void;
   error?: string | null;
+  registerInput?: (el: HTMLInputElement | null) => (() => void) | void;
 }
 
-export function SurfaceRow({ surface, autoFocus, onChange, onDelete, error }: Props) {
-  const colorRef = useRef<HTMLInputElement>(null);
+export function SurfaceRow({ surface, autoFocus, onChange, onDelete, error, registerInput }: Props) {
+  const [showPalette, setShowPalette] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => { if (autoFocus) inputRef.current?.focus(); }, [autoFocus]);
+  useEffect(() => {
+    if (!registerInput) return;
+    const cleanup = registerInput(inputRef.current);
+    return typeof cleanup === 'function' ? cleanup : undefined;
+  }, [registerInput]);
 
   const hidden = surface.hidden ?? false;
 
   return (
     <div className="space-y-1 pb-2 border-b border-[#161412]/50 last:border-0">
       <div className="flex items-center gap-1.5">
-        <button
-          title="Change colour"
-          className="w-3 h-3 rounded-full shrink-0 border border-white/20 hover:scale-125 transition-transform"
-          style={{ background: surface.color ?? '#4A9EE0' }}
-          onClick={() => colorRef.current?.click()}
-        />
-        <input
-          ref={colorRef}
-          type="color"
-          className="sr-only"
-          value={surface.color ?? '#4A9EE0'}
-          onChange={(e) => onChange({ color: e.target.value })}
-        />
+        <div className="relative shrink-0">
+          <button
+            title="Change surface colour"
+            className={[
+              'w-3.5 h-3.5 rounded-full shrink-0 border border-white/30 hover:scale-115 active:scale-95 transition-all shadow-sm ring-1',
+              showPalette ? 'ring-2 ring-amber-400 scale-115 shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'ring-white/10 hover:ring-amber-400/50',
+            ].join(' ')}
+            style={{ background: surface.color ?? '#4A9EE0' }}
+            onClick={() => setShowPalette(v => !v)}
+          />
+          {showPalette && (
+            <ColorPalettePopover
+              color={surface.color ?? '#4A9EE0'}
+              onChange={(color) => onChange({ color })}
+              onClose={() => setShowPalette(false)}
+            />
+          )}
+        </div>
 
         <span className="text-neutral-500 text-xs font-mono shrink-0">z =</span>
 

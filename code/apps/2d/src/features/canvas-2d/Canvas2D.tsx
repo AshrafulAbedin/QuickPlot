@@ -92,20 +92,41 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
     document.fonts.ready.then(() => setViewport(vp => ({ ...vp })));
   }, []);
 
-  // ── non-passive wheel ─────────────────────────────────────────────────
+  // ── non-passive wheel (RAF-throttled for 60/120fps smoothness) ────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    let pendingZoom: ((vp: Viewport) => Viewport) | null = null;
+    let rafId: number | null = null;
+
     const handle = (e: WheelEvent) => {
       e.preventDefault();
       const rect   = canvas.getBoundingClientRect();
       const cx     = e.clientX - rect.left;
       const cy     = e.clientY - rect.top;
       const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-      setViewport(vp => zoomVP(vp, factor, cx, cy));
+
+      const prevZoom = pendingZoom;
+      pendingZoom = vp => {
+        const base = prevZoom ? prevZoom(vp) : vp;
+        return zoomVP(base, factor, cx, cy);
+      };
+
+      if (rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          if (pendingZoom) {
+            setViewport(pendingZoom);
+            pendingZoom = null;
+          }
+          rafId = null;
+        });
+      }
     };
     canvas.addEventListener('wheel', handle, { passive: false });
-    return () => canvas.removeEventListener('wheel', handle);
+    return () => {
+      canvas.removeEventListener('wheel', handle);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // ── draw ─────────────────────────────────────────────────────────────
@@ -123,6 +144,9 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
   }, [viewport, curves, specialPoints, theme]);
 
   // ── mouse ─────────────────────────────────────────────────────────────
+  const dragRaf = useRef<number | null>(null);
+  const pendingPan = useRef<{ dx: number; dy: number } | null>(null);
+
   const onMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     dragging.current = true;
     e.currentTarget.style.cursor = 'grabbing';
@@ -139,8 +163,25 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
     if (dragging.current) {
       const dx = e.clientX - lastPos.current.x;
       const dy = e.clientY - lastPos.current.y;
-      setViewport(vp => panVP(vp, dx, dy));
       lastPos.current = { x: e.clientX, y: e.clientY };
+
+      if (!pendingPan.current) {
+        pendingPan.current = { dx, dy };
+      } else {
+        pendingPan.current.dx += dx;
+        pendingPan.current.dy += dy;
+      }
+
+      if (dragRaf.current === null) {
+        dragRaf.current = requestAnimationFrame(() => {
+          if (pendingPan.current) {
+            const { dx: pdx, dy: pdy } = pendingPan.current;
+            pendingPan.current = null;
+            setViewport(vp => panVP(vp, pdx, pdy));
+          }
+          dragRaf.current = null;
+        });
+      }
     }
   }, []);
 

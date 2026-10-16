@@ -132,7 +132,11 @@ export function detectEquationType(raw: string): DetectionResult {
   }
 
   // ── (4) cartesian: y = … or f(x) = … ──────────────────────────────────
+  // If the RHS also references `y`, this is an implicit equation (e.g. `y = x + y^2`)
   if (assign && /^(?:y|f\s*\(\s*x\s*\))$/i.test(assign.lhs)) {
+    if (/\by\b/.test(assign.rhs)) {
+      return { type: 'implicit', expression: src };
+    }
     return { type: 'cartesian', expression: assign.rhs };
   }
 
@@ -141,7 +145,10 @@ export function detectEquationType(raw: string): DetectionResult {
     return { type: 'implicit', expression: src };
   }
 
-  // ── (6) default: bare expression in x → cartesian ─────────────────────
+  // ── (6) default: bare expression containing y → implicit; otherwise cartesian
+  if (/\by\b/.test(src)) {
+    return { type: 'implicit', expression: `${src} = 0` };
+  }
   return { type: 'cartesian', expression: src };
 }
 

@@ -146,6 +146,30 @@ export function HelpPanel({ onInsert, onClose }: Props) {
           ))}
         </div>
       </div>
+
+      <div className="border-t border-[#161412] pt-2 mt-2">
+        <p className="font-pixel text-neutral-500 text-[10px] tracking-widest mb-1.5">SHORTCUTS</p>
+        <div className="rounded border border-neutral-600 bg-neutral-900/60 overflow-hidden">
+          {[
+            ['Left drag', 'Orbit 3D camera'],
+            ['Right drag', 'Pan view'],
+            ['Scroll', 'Zoom in / out'],
+            ['Ctrl + Enter', 'Add surface'],
+            ['?', 'Toggle help'],
+          ].map(([key, desc], i, arr) => (
+            <div
+              key={key}
+              className={[
+                'flex items-center justify-between gap-2 px-2.5 py-1 text-[10px]',
+                i < arr.length - 1 ? 'border-b border-[#161412]/60' : '',
+              ].join(' ')}
+            >
+              <span className="font-mono text-amber-400/80 shrink-0">{key}</span>
+              <span className="font-mono text-neutral-400 text-right">{desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

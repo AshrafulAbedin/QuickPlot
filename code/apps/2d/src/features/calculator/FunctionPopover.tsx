@@ -77,9 +77,10 @@ const GROUPS: Array<{ title: string; keys: FnKey[] }> = [
 interface Props {
   onInsert: (token: string) => void;
   onClose: () => void;
+  openDownward?: boolean;
 }
 
-export function FunctionPopover({ onInsert, onClose }: Props) {
+export function FunctionPopover({ onInsert, onClose, openDownward }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,14 +99,26 @@ export function FunctionPopover({ onInsert, onClose }: Props) {
   return (
     <div
       ref={ref}
-      className="absolute bottom-full mb-2 left-0 w-72 max-h-80 overflow-y-auto rounded border border-[#161412] bg-neutral-800 shadow-lg"
+      className={[
+        'absolute left-0 w-80 max-h-84 overflow-y-auto rounded-xl border border-neutral-700/80 bg-neutral-900/95 backdrop-blur-md shadow-2xl p-2.5 z-40 ring-1 ring-white/5 space-y-2.5',
+        openDownward ? 'top-full mt-2' : 'bottom-full mb-2',
+      ].join(' ')}
     >
-      {GROUPS.map((g, i) => (
-        <div key={g.title} className={i > 0 ? 'border-t border-[#161412]' : ''}>
-          <p className="font-pixel text-neutral-500 text-[10px] tracking-widest px-3 pt-2 pb-1">
+      <div className="flex items-center justify-between pb-1 border-b border-neutral-800">
+        <span className="font-pixel text-amber-400 text-[10px] tracking-widest">FUNCTIONS</span>
+        <button
+          onClick={onClose}
+          className="w-4 h-4 rounded-full flex items-center justify-center text-neutral-500 hover:text-neutral-200 hover:bg-neutral-800 transition-colors text-[10px]"
+        >
+          ✕
+        </button>
+      </div>
+      {GROUPS.map((g) => (
+        <div key={g.title} className="space-y-1">
+          <p className="font-pixel text-neutral-400 text-[9px] tracking-wider px-1">
             {g.title.toUpperCase()}
           </p>
-          <div className="grid grid-cols-3 gap-1 px-2 pb-2">
+          <div className="grid grid-cols-3 gap-1">
             {g.keys.map(k => (
               <button
                 key={k.label}
@@ -113,10 +126,10 @@ export function FunctionPopover({ onInsert, onClose }: Props) {
                 title={k.unsupported ? 'Not supported by the parser yet' : k.token}
                 onClick={() => onInsert(k.token)}
                 className={[
-                  'py-1.5 rounded font-mono text-xs transition-colors',
+                  'py-1.5 px-2 rounded-md font-mono text-xs transition-all border shadow-sm active:scale-95 select-none',
                   k.unsupported
-                    ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
-                    : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-200',
+                    ? 'bg-neutral-900/40 text-neutral-600 border-neutral-800/80 cursor-not-allowed'
+                    : 'bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-amber-300 border-neutral-700/70 hover:border-amber-400/40',
                 ].join(' ')}
               >
                 {k.label}
