@@ -1,4 +1,4 @@
-export { parseExpression, validateExpression, parseWithScope, detectParameters } from './parser';
+export { parseExpression, validateExpression, parseWithScope, detectParameters, expandImplicitMultiplication } from './parser';
 export { findRoots, findExtrema, findIntersections } from './evaluator';
 export type { SpecialPointData, Point } from './evaluator';
 export { parseJsonData, parseCsvData, normalizeImplicit } from './dataset';

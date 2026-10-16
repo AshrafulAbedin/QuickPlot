@@ -10,15 +10,15 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export function hasFirebaseConfig(): boolean {
+/** True when sign-in can work. Database access additionally needs `hasDatabaseConfig()`. */
+export function hasAuthConfig(): boolean {
   return Object.values(firebaseConfig).every(Boolean);
 }
 
 export function getFirebaseAuth() {
-  if (!hasFirebaseConfig()) {
-    throw new Error('Firebase is not configured. Add the VITE_FIREBASE_* values to .env.');
+  if (!hasAuthConfig()) {
+    throw new Error('Firebase is not configured. Add the VITE_FIREBASE_* values to code/.env.');
   }
-
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   return getAuth(app);
 }

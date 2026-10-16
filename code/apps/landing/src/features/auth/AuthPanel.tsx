@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { hasFirebaseConfig, useAuth } from '@quickplot/auth';
+import { hasAuthConfig, useAuth } from '@quickplot/auth';
 import { GoogleButton } from './GoogleButton';
 
 export type AuthIntent = 'signin' | 'register';
@@ -37,8 +37,8 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
   const copy = COPY[intent];
 
   const handleGoogle = async () => {
-    if (!hasFirebaseConfig()) {
-      setNotice('Google sign-in needs Firebase settings. Copy .env.example to .env and add the project values.');
+    if (!hasAuthConfig()) {
+      setNotice('Google sign-in needs Firebase settings. Copy code/.env.example to code/.env and add the project values.');
       return;
     }
 

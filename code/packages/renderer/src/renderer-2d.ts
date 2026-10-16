@@ -257,8 +257,8 @@ function drawPolar(ctx: CanvasRenderingContext2D, vp: Viewport, curve: PolarCurv
 
 // Marching-squares contouring for implicit curves f(x,y) = 0
 function drawImplicit(ctx: CanvasRenderingContext2D, vp: Viewport, curve: ImplicitCurve) {
-  // Resolution scales with viewport so zoomed-in views stay crisp
-  const RES = Math.min(300, Math.max(80, Math.round(Math.min(vp.width, vp.height) / 6)));
+  // Fast, responsive grid resolution with edge bisection refinement for sharp, smooth curves
+  const RES = Math.min(200, Math.max(120, Math.round(Math.min(vp.width, vp.height) / 5)));
   const { xMin, xMax, yMin, yMax } = visibleRange(vp);
   const dx = (xMax - xMin) / RES;
   const dy = (yMax - yMin) / RES;
@@ -278,6 +278,45 @@ function drawImplicit(ctx: CanvasRenderingContext2D, vp: Viewport, curve: Implic
       }
     }
   }
+
+  // Refine zero-crossing along an edge using bisection for smooth contours
+  // especially for high-degree polynomial curves like (x^2+y^2-1)^3 = x^2*y^3
+  const refineZeroCrossing = (
+    x0: number, y0: number,
+    x1: number, y1: number,
+    v0: number, v1: number,
+  ): [number, number] => {
+    // Initial guess from linear interpolation
+    let t = v0 / (v0 - v1);
+    if (!isFinite(t) || t < 0 || t > 1) t = 0.5;
+
+    let loX = x0, loY = y0, fLo = v0;
+    let hiX = x1, hiY = y1;
+    // 3 steps of bisection are extremely cheap and dramatically sharpen steep curves
+    for (let k = 0; k < 3; k++) {
+      const midX = loX + t * (hiX - loX);
+      const midY = loY + t * (hiY - loY);
+      let fMid: number;
+      try {
+        fMid = curve.fn(midX, midY);
+      } catch {
+        break;
+      }
+      if (!isFinite(fMid) || Math.abs(fMid) < 1e-9) {
+        return [midX, midY];
+      }
+      if (Math.sign(fLo) !== Math.sign(fMid)) {
+        hiX = midX;
+        hiY = midY;
+      } else {
+        loX = midX;
+        loY = midY;
+        fLo = fMid;
+      }
+      t = 0.5;
+    }
+    return [(loX + hiX) * 0.5, (loY + hiY) * 0.5];
+  };
 
   ctx.strokeStyle = curve.color;
   ctx.lineWidth   = curve.lineWidth ?? 2;
@@ -301,21 +340,21 @@ function drawImplicit(ctx: CanvasRenderingContext2D, vp: Viewport, curve: Implic
       // Collect zero-crossing points on each of the 4 edges
       const pts: [number, number][] = [];
 
+      // Bottom edge (wx0,wy0) -> (wx1,wy0)
       if (Math.sign(v00) !== Math.sign(v10)) {
-        const t = v00 / (v00 - v10);
-        pts.push([wx0 + t * dx, wy0]);
+        pts.push(refineZeroCrossing(wx0, wy0, wx1, wy0, v00, v10));
       }
+      // Right edge (wx1,wy0) -> (wx1,wy1)
       if (Math.sign(v10) !== Math.sign(v11)) {
-        const t = v10 / (v10 - v11);
-        pts.push([wx1, wy0 + t * dy]);
+        pts.push(refineZeroCrossing(wx1, wy0, wx1, wy1, v10, v11));
       }
+      // Top edge (wx1,wy1) -> (wx0,wy1)
       if (Math.sign(v11) !== Math.sign(v01)) {
-        const t = v11 / (v11 - v01);
-        pts.push([wx0 + (1 - t) * dx, wy1]);
+        pts.push(refineZeroCrossing(wx1, wy1, wx0, wy1, v11, v01));
       }
+      // Left edge (wx0,wy1) -> (wx0,wy0)
       if (Math.sign(v01) !== Math.sign(v00)) {
-        const t = v01 / (v01 - v00);
-        pts.push([wx0, wy0 + (1 - t) * dy]);
+        pts.push(refineZeroCrossing(wx0, wy1, wx0, wy0, v01, v00));
       }
 
       if (pts.length === 2) {

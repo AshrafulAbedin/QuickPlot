@@ -1,4 +1,5 @@
-export { AuthContext, AuthProvider, type AuthContextValue } from './AuthContext';
+export { AuthContext, AuthProvider, getAuthCookie, type AuthContextValue } from './AuthContext';
 export { useAuth } from './useAuth';
-export { getCurrentUser, login, loginWithGoogle, logout, onAuthChange, register } from './authService';
-export { getFirebaseAuth, hasFirebaseConfig } from './firebase';
+export { getCurrentUser, login, loginWithGoogle, logout, onAuthChange, register, type AuthUser } from './authService';
+export { getFirebaseAuth, hasAuthConfig } from './firebase';
+export { ensureProfile, getSupabase, hasDatabaseConfig } from './supabaseClient';
