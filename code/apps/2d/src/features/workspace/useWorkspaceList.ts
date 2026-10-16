@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react'
 import type { Workspace } from '@quickplot/types'
-import { getUserWorkspaces } from '../../lib/db'
+import { listWorkspaces } from '../../lib/db'
 
 interface UseWorkspaceListReturn {
   workspaces: Workspace[]
   loading: boolean
   error: string | null
-  fetchList: (uid: string) => Promise<void>
+  fetchList: () => Promise<void>
   removeLocal: (id: string) => void
   addLocal: (ws: Workspace) => void
 }
@@ -16,11 +16,11 @@ export function useWorkspaceList(): UseWorkspaceListReturn {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchList = useCallback(async (uid: string) => {
+  const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const list = await getUserWorkspaces(uid)
+      const list = await listWorkspaces()
       setWorkspaces(list)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load workspaces')

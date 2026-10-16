@@ -48,10 +48,10 @@ export function toCurve(eq: EquationEntry, scope: Record<string, number>): PlotC
         if (!eq.expression.trim() || eq.error) return null;
         const normalized = normalizeImplicit(eq.expression);
         const fn = parseWithScope(normalized);
-        const _scope: Record<string, number> = { x: 0, y: 0 };
+        const evalScope = { ...scope, x: 0, y: 0 };
         return {
           kind: 'implicit',
-          fn: (x, y) => { _scope.x = x; _scope.y = y; return fn(_scope); },
+          fn: (x, y) => { evalScope.x = x; evalScope.y = y; return fn(evalScope); },
           color: eq.color, label: eq.expression,
         };
       }

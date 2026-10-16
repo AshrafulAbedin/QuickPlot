@@ -10,7 +10,7 @@ interface UseSharedWorkspaceReturn {
   error: string | null
 }
 
-export function useSharedWorkspace(shareId: string): UseSharedWorkspaceReturn {
+export function useSharedWorkspace(shareToken: string): UseSharedWorkspaceReturn {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [status, setStatus] = useState<SharedStatus>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +20,7 @@ export function useSharedWorkspace(shareId: string): UseSharedWorkspaceReturn {
     setStatus('loading')
     setError(null)
 
-    getSharedWorkspace(shareId)
+    getSharedWorkspace(shareToken)
       .then(ws => {
         if (cancelled) return
         if (!ws) {
@@ -39,7 +39,7 @@ export function useSharedWorkspace(shareId: string): UseSharedWorkspaceReturn {
     return () => {
       cancelled = true
     }
-  }, [shareId])
+  }, [shareToken])
 
   return { workspace, status, error }
 }

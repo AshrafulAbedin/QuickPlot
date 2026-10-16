@@ -18,6 +18,7 @@ export default defineConfig({
       '@quickplot/types-3d':    path.resolve(__dirname, '../../packages/types-3d/src/index.ts'),
       '@quickplot/renderer-3d': path.resolve(__dirname, '../../packages/renderer-3d/src/index.ts'),
       '@quickplot/core-3d':     path.resolve(__dirname, '../../packages/core-3d/src/index.ts'),
+      '@quickplot/auth':        path.resolve(__dirname, '../../packages/auth/src/index.ts'),
     },
   },
 });

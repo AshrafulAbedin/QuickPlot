@@ -1,86 +1,94 @@
-# QuickPlot — Firebase Auth + Supabase (Postgres) Setup
+# QuickPlot — Firebase Auth + Supabase (Postgres) setup
 
-QuickPlot uses **Firebase Auth** for identity and **Supabase (Postgres)** for
-data. This is the setup a new developer needs to run the backend locally.
+QuickPlot uses **Firebase Auth** for identity (Google / email sign-in) and
+**Supabase Postgres** for data, with Row Level Security keyed on the Firebase
+uid. Firebase gives one-click Google sign-in on the free Spark plan; Supabase
+gives real server-side logic (triggers, RLS, RPCs) that Firestore cannot.
 
 ## Architecture
 
+```text
+User ──Google──▶ Firebase Auth ──▶ Firebase ID token (JWT, sub = uid)
+                                          │
+                                          ▼
+              @quickplot/auth  getSupabase()  — accessToken: () => user.getIdToken()
+                                          │
+                                          ▼
+     Supabase (Third-Party Auth: Firebase) verifies the token → auth.jwt()
+                                          │
+                                          ▼
+       Postgres: profiles · workspaces · workspace_collaborators
+                 RLS policies keyed on current_uid() = auth.jwt()->>'sub'
 ```
-User → Firebase Auth (Google login)  →  Firebase ID token (JWT)
-                                            │
-                                            ▼
-        Supabase client (accessToken = Firebase token)
-                                            │
-                                            ▼
-        Postgres + Row Level Security  (auth.jwt()->>'sub' = Firebase uid)
-```
+
+Schema lives in [`code/supabase/migrations/`](../code/supabase/migrations/).
+Types that mirror it live in [`code/packages/types/src/index.ts`](../code/packages/types/src/index.ts).
 
 ## One-time project setup
 
-### 1. Create a Supabase project
-- https://supabase.com → New project
-- Note the **Project URL** and **publishable (anon) key** (Project Settings → API)
+### Firebase (identity)
 
-### 2. Create the schema
-- Dashboard → **SQL Editor** → run [`code/supabase/schema.sql`](../code/supabase/schema.sql)
-- Creates the `workspaces` table, indexes, `updated_at` trigger, and RLS policies
+1. Firebase Console → your project → **Authentication → Sign-in method**: enable **Google** (and Email/Password if wanted). `localhost` is authorised by default.
+2. **Project settings → Your apps → Web app**: copy the `firebaseConfig` values into `code/.env` (see below).
 
-### 3. Trust Firebase tokens (Third-Party Auth)
-- Dashboard → **Authentication → Third-Party Auth** → add **Firebase**
-- Enter the Firebase **project ID**: `quickplot-213a3`
-- Supabase now validates Firebase JWTs and exposes their claims (`sub` = Firebase uid) to RLS
+Firestore is **not** used — ignore any Firestore rules or collections in the console.
 
-### 4. Environment variables
-In `code/apps/web/.env`:
-```
-VITE_SUPABASE_URL=https://<your-project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<publishable key, sb_publishable_...>
-```
-> Use the base project URL — **not** the `/rest/v1/` endpoint.
-> Never put the `service_role` / secret key in the client.
+### Supabase (data)
 
-### 5. Run
+1. Create a project at <https://supabase.com>. Note the **Project URL** and the **anon / publishable key** (Project Settings → API).
+2. **Trust Firebase tokens**: Authentication → **Third-Party Auth** → Add integration → **Firebase** → enter the Firebase project id (e.g. `quickplot-213a3`). Without this every request is anonymous and RLS rejects all writes — silently.
+3. **Apply the schema**: either `supabase link --project-ref <ref>` then `supabase db push`, or paste `code/supabase/migrations/20260916000000_init.sql` into Dashboard → SQL Editor.
+   If an older `workspaces` table exists from a previous schema, drop it first: `drop table public.workspaces cascade;`
+
+### Environment
+
+Copy `code/.env.example` to `code/.env` (gitignored; all three apps read it):
+
+```dotenv
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=<project>.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=<project>
+VITE_FIREBASE_STORAGE_BUCKET=<project>.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+
+VITE_SUPABASE_URL=https://<ref>.supabase.co     # bare URL, not /rest/v1/
+VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ```
-cd code
-pnpm dev
-```
+
+The anon key is meant for browsers; the `service_role` key must never appear in the client.
+Then `cd code && pnpm install && pnpm dev`.
+
+## Data model
+
+| Table | Purpose | Who can do what (RLS) |
+| --- | --- | --- |
+| `profiles` | `id` = Firebase uid, display name, avatar. Upserted by the `ensure_profile()` RPC after each sign-in. | signed-in users read all; you update yours |
+| `profile_emails` | uid → email, used only by `add_collaborator_by_email`. RLS on, no policies: unreadable through the API. | nobody (SECURITY DEFINER functions only) |
+| `workspaces` | Title, description, `equations` / `viewport` / `sliders` / `theme` (jsonb), `schema_version`, `is_public`, `share_token`, timestamps | read: owner, collaborators, or anyone if `is_public`; write: owner + editors; delete: owner |
+| `workspace_collaborators` | `(workspace_id, user_id, role)`, role ∈ `viewer` / `editor` | owner manages; members see their own row |
+
+Design points worth knowing:
+
+- **Ids are Firebase uids (`text`)**, so Supabase's `auth.uid()` (which casts to uuid) is never used. Policies go through `current_uid()`.
+- **`owner_id` defaults to `current_uid()`** and is immutable — the client never sends it, so it cannot be spoofed.
+- **Profiles come from the verified token**, not from client input: `ensure_profile()` reads `sub` / `name` / `picture` / `email` from `auth.jwt()`. `AuthProvider` calls it before it reports the user as signed in, so a workspace can never reference a missing profile.
+- **`share_token` is generated by the DB** (`gen_random_bytes`) and never changes; toggling `is_public` off and on revives old links.
+- **Editors cannot change sharing or ownership** (`guard_owner_only_columns` trigger).
+- **Invite by email** goes through `add_collaborator_by_email`, which reads the private `profile_emails` table. The invitee must have signed in to QuickPlot at least once.
+- **`schema_version`** is stamped on every row. When `EquationEntry` or friends change shape, bump `WORKSPACE_SCHEMA_VERSION`, add a migration, and branch on the version in the loader.
+- **Deleting a user in Firebase does not cascade** into Postgres (there is no FK to Firebase). Delete their `profiles` row too — that cascades to workspaces and memberships.
 
 ## How the code is wired
 
-- `src/lib/supabase.ts` — Supabase client; its `accessToken` returns the current
-  Firebase ID token, so every request carries the Firebase identity.
-- `src/lib/workspaces-supabase.ts` — typed CRUD against the `workspaces` table
-  (maps snake_case columns ↔ camelCase `@quickplot/types`).
-- `src/lib/db.ts` — thin facade the app imports from. Swapping persistence later
-  means changing only this re-export.
-- Hooks (`useWorkspace`, `useWorkspaceList`, `useSharedWorkspace`) and all UI go
-  through `lib/db`, so they're backend-agnostic.
+- `packages/auth/src/firebase.ts` — Firebase app + Google provider; `hasAuthConfig()`.
+- `packages/auth/src/authService.ts` — sign-in / sign-out / `onAuthChange`, exposing a provider-neutral `AuthUser { uid, email, displayName, photoURL }`.
+- `packages/auth/src/supabaseClient.ts` — lazy singleton `getSupabase()` whose `accessToken` is the Firebase ID token; `ensureProfile()`; `hasDatabaseConfig()`.
+- `apps/2d/src/lib/workspaces-supabase.ts` — typed CRUD + collaborator calls; maps snake_case rows ↔ `@quickplot/types`.
+- `apps/2d/src/lib/db.ts` — the facade hooks import from. Swapping storage later means editing one re-export.
+- `apps/2d/src/features/workspace/` — `useWorkspace`, `useWorkspaceList`, `useSharedWorkspace`, and the panel UI.
 
-## 2D workspace controls
+## Adding a migration
 
-The signed-in 2D sidebar includes Workspaces. **Save New** captures the live
-equations (including point datasets and derivative flags), sliders, viewport,
-and canvas theme. **Save changes** updates the selected saved workspace.
-Saving is manual; editing the graph does not automatically write to Supabase.
-
-Opening a workspace asks before replacing the current graph. It restores the
-saved slider values and stops slider animations. On a differently sized screen,
-the canvas fits the saved viewport while keeping equal scale on both axes.
-Signing out or switching accounts resets the workspace panel's selected record.
-
-Workspace share URLs use `/2d/?shared=<shareId>` and open the existing read-only
-workspace summary. The graph's separate hash-based Link button is unchanged.
-
-To verify the live setup, sign in, create a graph with a parameter slider and a
-point dataset, pan/zoom and change theme, then save. Refresh and open that saved
-workspace; check all graph data and settings. Edit and use Save changes, then
-reopen. Use a second account to verify that private records cannot be read or
-updated. These checks require the schema and Firebase Third-Party Auth setup
-above; local tests cannot verify the deployed RLS policies.
-
-## Notes
-
-- The Firebase uid is stored in `owner_id`. RLS scopes access with
-  `(auth.jwt() ->> 'sub') = owner_id`.
-- Shared workspaces are world-readable via the `workspaces_public_read_shared`
-  policy — no auth required — which powers `/shared/:shareId`.
+Create `code/supabase/migrations/<YYYYMMDDHHMMSS>_<name>.sql`. Never edit an
+applied migration; write a new one. Keep `packages/types` in the same commit.

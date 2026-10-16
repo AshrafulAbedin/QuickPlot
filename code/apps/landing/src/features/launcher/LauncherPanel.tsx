@@ -2,8 +2,25 @@ import { useState, type ReactNode } from 'react';
 import { EmbossButton } from '../../components/EmbossButton';
 import { ToolsPanel } from './ToolsPanel';
 
-const URL_2D = import.meta.env.VITE_URL_2D ?? '/2d/';
-const URL_3D = import.meta.env.VITE_URL_3D ?? '/3d/';
+function get2DUrl(): string {
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) return 'http://localhost:5174/2d/';
+  }
+  const envUrl = import.meta.env.VITE_URL_2D;
+  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) return envUrl;
+  return '/2d/';
+}
+
+function get3DUrl(): string {
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) return 'http://localhost:5175/3d/';
+  }
+  const envUrl = import.meta.env.VITE_URL_3D;
+  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) return envUrl;
+  return '/3d/';
+}
 
 function Icon2D() {
   return (
@@ -105,14 +122,14 @@ export function LauncherPanel() {
               label="2D"
               hint="Cartesian · polar · parametric · implicit"
               icon={<Icon2D />}
-              href={URL_2D}
+              href={get2DUrl()}
               external
             />
             <LauncherCard
               label="3D"
               hint="Surface plots with orbit controls"
               icon={<Icon3D />}
-              href={URL_3D}
+              href={get3DUrl()}
               external
             />
             <LauncherCard

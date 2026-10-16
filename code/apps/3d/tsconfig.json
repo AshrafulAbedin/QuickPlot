@@ -15,7 +15,8 @@
     "paths": {
       "@quickplot/types":    ["../../packages/types/src/index.ts"],
       "@quickplot/renderer": ["../../packages/renderer/src/index.ts"],
-      "@quickplot/core":     ["../../packages/core/src/index.ts"]
+      "@quickplot/core":     ["../../packages/core/src/index.ts"],
+      "@quickplot/auth":     ["../../packages/auth/src/index.ts"]
     }
   },
   "include": ["src"]
