@@ -1,8 +1,9 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { EquationEntry, EquationType } from './types';
 import { detectEquationType } from './detectType';
 import { InlineSliderRow } from '../sliders/InlineSliderRow';
 import type { Slider } from '../sliders/SliderPanel';
+import { ColorPalettePopover } from './ColorPalettePopover';
 
 interface Props {
   entry: EquationEntry;
@@ -16,6 +17,7 @@ interface Props {
   animating?: Set<string>;
   onSliderChange?: (name: string, value: number) => void;
   onSliderRangeChange?: (name: string, min: number, max: number) => void;
+  onSliderStepChange?: (name: string, step: number) => void;
   onToggleSliderAnimation?: (name: string) => void;
   onSliderLoopModeChange?: (name: string, mode: 'pingpong' | 'wrap') => void;
   /**
@@ -117,10 +119,10 @@ function Inp({
 export function EquationRow({
   entry, autoFocus, onChange, onDelete, onTrace, isTracing,
   inlineSliders, animating,
-  onSliderChange, onSliderRangeChange, onToggleSliderAnimation, onSliderLoopModeChange,
+  onSliderChange, onSliderRangeChange, onSliderStepChange, onToggleSliderAnimation, onSliderLoopModeChange,
   registerInput,
 }: Props) {
-  const colorRef = useRef<HTMLInputElement>(null);
+  const [showPalette, setShowPalette] = useState(false);
   // `autoDetect` defaults to true so existing entries (loaded from hash /
   // localStorage) opt in without a migration.
   const autoDetect = entry.autoDetect !== false;
@@ -143,33 +145,38 @@ export function EquationRow({
     <div className="space-y-1 pb-2 border-b border-[#161412]/50 last:border-0">
       {/* row 1: color + type badge/select + actions + delete */}
       <div className="flex items-center gap-1.5">
-        {/* color swatch */}
-        <button
-          title="Change colour"
-          className="w-3 h-3 rounded-full shrink-0 border border-white/20 hover:scale-125 transition-transform"
-          style={{ background: entry.color }}
-          onClick={() => colorRef.current?.click()}
-        />
-        <input
-          ref={colorRef}
-          type="color"
-          className="sr-only"
-          value={entry.color}
-          onChange={(e) => onChange({ color: e.target.value })}
-        />
+        {/* modern color swatch with palette popover */}
+        <div className="relative shrink-0">
+          <button
+            title="Choose curve colour"
+            className={[
+              'w-3.5 h-3.5 rounded-full shrink-0 border border-white/40 hover:scale-115 active:scale-95 transition-all shadow-sm ring-1',
+              showPalette ? 'ring-2 ring-amber-400 scale-115 shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'ring-white/10 hover:ring-amber-400/50',
+            ].join(' ')}
+            style={{ background: entry.color }}
+            onClick={() => setShowPalette(v => !v)}
+          />
+          {showPalette && (
+            <ColorPalettePopover
+              color={entry.color}
+              onChange={(color) => onChange({ color })}
+              onClose={() => setShowPalette(false)}
+            />
+          )}
+        </div>
 
         {/* type: auto-detect shows a small badge; manual mode shows a select */}
         {autoDetect ? (
           <span
             title={`Auto-detected: ${TYPE_LABELS[entry.type]}`}
-            className="text-neutral-500 text-[10px] font-pixel px-1 py-0.5 rounded border border-neutral-700"
+            className="text-neutral-400 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md border border-neutral-700/80 bg-neutral-800/80 shadow-xs"
           >
             {TYPE_BADGE[entry.type]}
           </span>
         ) : entry.type !== 'points' ? (
           <select
             value={entry.type}
-            className="bg-neutral-700 text-neutral-300 text-xs rounded px-1 py-0.5 border-none outline-none cursor-pointer hover:bg-neutral-600"
+            className="bg-neutral-800 border border-neutral-700/80 text-neutral-300 text-xs rounded-md px-1.5 py-0.5 outline-none cursor-pointer hover:border-amber-400/40 transition-colors"
             onChange={(e) => onChange({ type: e.target.value as EquationType, rawInput: undefined })}
           >
             {TYPE_OPTIONS.filter(t => t !== 'points').map(t => (
@@ -185,44 +192,52 @@ export function EquationRow({
         {/* auto/manual mode toggle (gear) */}
         {entry.type !== 'points' && (
           <button
-            title={autoDetect ? 'Pin type manually' : 'Return to auto-detect'}
+            title={autoDetect ? 'Auto-detection active (click to lock type)' : 'Manual type locked (click for auto)'}
             onClick={() => onChange({
               autoDetect: !autoDetect,
-              // Leaving auto mode drops the raw input so the per-type inputs
-              // show their own reconstructed values; returning to auto seeds
-              // rawInput from the current fields on next keystroke.
               rawInput: undefined,
             })}
             className={[
-              'text-xs transition-colors leading-none w-4 text-center',
-              autoDetect ? 'text-neutral-600 hover:text-neutral-300' : 'text-amber-400 hover:text-amber-300',
+              'w-6 h-6 rounded-md flex items-center justify-center transition-all shadow-xs active:scale-90',
+              autoDetect
+                ? 'text-neutral-500 hover:text-neutral-200 hover:bg-neutral-800/80'
+                : 'text-amber-400 bg-amber-500/10 border border-amber-500/30',
             ].join(' ')}
           >
-            ⚙
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
           </button>
         )}
 
         {/* trace animation (non-points curves only) */}
         {entry.type !== 'points' && onTrace && (
           <button
-            title={isTracing ? 'Tracing…' : 'Animate draw (manim-style)'}
+            title={isTracing ? 'Tracing…' : 'Animate curve drawing'}
             onClick={onTrace}
             className={[
-              'text-xs transition-colors leading-none',
-              isTracing ? 'text-amber-400 animate-pulse' : 'text-neutral-600 hover:text-neutral-300',
+              'w-6 h-6 rounded-md flex items-center justify-center transition-all shadow-xs active:scale-90',
+              isTracing
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                : 'text-neutral-500 hover:text-amber-300 hover:bg-neutral-800/80',
             ].join(' ')}
           >
-            {isTracing ? '◈' : '▷'}
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+              <path d="M8 5v14l11-7z" />
+            </svg>
           </button>
         )}
 
         {/* derivative overlay (cartesian only) */}
         {entry.type === 'cartesian' && (
           <button
-            title="Toggle f′ derivative overlay"
+            title="Toggle derivative (f′) overlay"
             className={[
-              'text-xs transition-colors font-pixel leading-none',
-              entry.showDerivative ? 'text-amber-400' : 'text-neutral-600 hover:text-neutral-400',
+              'w-6 h-6 rounded-md flex items-center justify-center transition-all font-serif font-bold text-xs shadow-xs active:scale-90',
+              entry.showDerivative
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm shadow-amber-500/10'
+                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/80',
             ].join(' ')}
             onClick={() => onChange({ showDerivative: !entry.showDerivative })}
           >
@@ -232,21 +247,30 @@ export function EquationRow({
 
         {/* visibility */}
         <button
-          title={entry.visible ? 'Hide' : 'Show'}
-          className="text-xs w-4 text-center transition-colors"
-          style={{ color: entry.visible ? entry.color : '#555' }}
+          title={entry.visible ? 'Hide from canvas' : 'Show on canvas'}
+          className="w-6 h-6 rounded-md flex items-center justify-center transition-all text-neutral-400 hover:bg-neutral-800/80 active:scale-90"
           onClick={() => onChange({ visible: !entry.visible })}
         >
-          {entry.visible ? '●' : '○'}
+          {entry.visible ? (
+            <span
+              className="w-3 h-3 rounded-full border border-white/30 shadow-sm"
+              style={{ background: entry.color }}
+            />
+          ) : (
+            <span className="w-3 h-3 rounded-full border-2 border-neutral-600 bg-transparent" />
+          )}
         </button>
 
         {/* delete */}
         <button
-          title="Remove"
-          className="text-neutral-600 hover:text-red-400 transition-colors text-base leading-none w-4 text-center"
+          title="Delete equation"
+          className="w-6 h-6 rounded-md flex items-center justify-center text-neutral-500 hover:text-red-400 hover:bg-red-500/15 transition-all active:scale-90"
           onClick={onDelete}
         >
-          ×
+          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
 
@@ -379,6 +403,7 @@ export function EquationRow({
               animating={animating?.has(s.name) ?? false}
               onChange={(v) => onSliderChange(s.name, v)}
               onRangeChange={(mn, mx) => onSliderRangeChange(s.name, mn, mx)}
+              onStepChange={onSliderStepChange ? (st) => onSliderStepChange(s.name, st) : undefined}
               onToggleAnimation={() => onToggleSliderAnimation(s.name)}
               onLoopModeChange={(m) => onSliderLoopModeChange(s.name, m)}
             />

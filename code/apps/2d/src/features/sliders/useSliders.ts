@@ -115,12 +115,36 @@ export function useSliders(
   );
 
   const onChange = useCallback((name: string, value: number) => {
-    setSliders(prev => ({ ...prev, [name]: { ...prev[name], value } }));
+    setSliders(prev => {
+      const s = prev[name];
+      if (!s) return prev;
+      // Clamp value within bounds
+      const clamped = Math.min(s.max, Math.max(s.min, value));
+      return { ...prev, [name]: { ...s, value: clamped } };
+    });
   }, []);
 
-  const onRangeChange = useCallback((name: string, min: number, max: number) => {
-    const step = parseFloat(((max - min) / 200).toPrecision(1));
-    setSliders(prev => ({ ...prev, [name]: { ...prev[name], min, max, step: Math.max(step, 1e-6) } }));
+  const onRangeChange = useCallback((name: string, rawMin: number, rawMax: number) => {
+    setSliders(prev => {
+      const s = prev[name];
+      if (!s) return prev;
+      let min = Number.isFinite(rawMin) ? rawMin : s.min;
+      let max = Number.isFinite(rawMax) ? rawMax : s.max;
+      if (min > max) [min, max] = [max, min];
+      if (min === max) max = min + 1;
+      const step = s.step || parseFloat(((max - min) / 200).toPrecision(1));
+      const value = Math.min(max, Math.max(min, s.value));
+      return { ...prev, [name]: { ...s, min, max, step: Math.max(step, 1e-6), value } };
+    });
+  }, []);
+
+  const onStepChange = useCallback((name: string, rawStep: number) => {
+    setSliders(prev => {
+      const s = prev[name];
+      if (!s) return prev;
+      const step = Number.isFinite(rawStep) && rawStep > 0 ? rawStep : 0.05;
+      return { ...prev, [name]: { ...s, step } };
+    });
   }, []);
 
   const onSpeedChange = useCallback((name: string, speed: number) => {
@@ -146,6 +170,6 @@ export function useSliders(
 
   return {
     sliders, setSliders, sliderScope, animating,
-    onChange, onRangeChange, onSpeedChange, onLoopModeChange, toggleAnimation,
+    onChange, onRangeChange, onStepChange, onSpeedChange, onLoopModeChange, toggleAnimation,
   };
 }

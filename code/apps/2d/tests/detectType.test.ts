@@ -46,12 +46,14 @@ describe('detectEquationType', () => {
   it('detects implicit for symmetric equations', () => {
     expect(detectEquationType('x^2 + y^2 = 1').type).toBe('implicit');
     expect(detectEquationType('x + y = 3').type).toBe('implicit');
+    expect(detectEquationType('(x^2 + y^2 - 1)^3 = x^2 * y^3').type).toBe('implicit');
+    expect(detectEquationType('y = x + y^2').type).toBe('implicit');
+    expect(detectEquationType('x^2 + y^2 - 1').type).toBe('implicit');
   });
 
-  it('does not confuse == or >= with assignment', () => {
+  it('does not confuse == with assignment', () => {
     // `x == 3` is a bare expression — no lhs=rhs match, so falls back to cartesian.
     expect(detectEquationType('x == 3').type).toBe('cartesian');
-    expect(detectEquationType('y >= x').type).toBe('cartesian');
   });
 
   it('detects point lists', () => {

@@ -10,9 +10,235 @@ function getCached(expr: string): EvalFunction {
   return compiled;
 }
 
+// ── implicit multiplication preprocessor ─────────────────────────────────
+
+const KNOWN_FUNCTIONS = [
+  'asinh', 'acosh', 'atanh', 'acsch', 'asech', 'acoth',
+  'sinh', 'cosh', 'tanh', 'csch', 'sech', 'coth',
+  'asin', 'acos', 'atan2', 'atan', 'acsc', 'asec', 'acot',
+  'sin', 'cos', 'tan', 'csc', 'sec', 'cot',
+  'log10', 'log2', 'log', 'ln', 'exp',
+  'sqrt', 'cbrt',
+  'abs', 'sign', 'round', 'floor', 'ceil', 'min', 'max', 'mod', 'gcd', 'lcm',
+];
+
+const KNOWN_MULTI_CONSTANTS = [
+  'Infinity', 'NaN', 'false', 'true',
+  'theta', 'tau', 'phi', 'pi',
+];
+
+type TokenType =
+  | 'NUMBER'
+  | 'FUNC'
+  | 'CONST'
+  | 'VAR'
+  | 'OP'
+  | 'PAREN_OPEN'
+  | 'PAREN_CLOSE'
+  | 'COMMA'
+  | 'SPACE';
+
+interface Token {
+  type: TokenType;
+  value: string;
+}
+
+function tokenize(expr: string): Token[] {
+  const tokens: Token[] = [];
+  let i = 0;
+  const len = expr.length;
+
+  while (i < len) {
+    const ch = expr[i];
+
+    // Whitespace
+    if (/\s/.test(ch)) {
+      let space = '';
+      while (i < len && /\s/.test(expr[i])) {
+        space += expr[i++];
+      }
+      tokens.push({ type: 'SPACE', value: space });
+      continue;
+    }
+
+    // Number (including scientific notation like 1e-5 or 2.5e3)
+    if (/\d/.test(ch) || (ch === '.' && i + 1 < len && /\d/.test(expr[i + 1]))) {
+      let num = '';
+      while (i < len && /[\d.]/.test(expr[i])) {
+        num += expr[i++];
+      }
+      if (i < len && (expr[i] === 'e' || expr[i] === 'E')) {
+        const nextChar = expr[i + 1];
+        if (nextChar === '+' || nextChar === '-' || /\d/.test(nextChar)) {
+          num += expr[i++];
+          if (expr[i] === '+' || expr[i] === '-') {
+            num += expr[i++];
+          }
+          while (i < len && /\d/.test(expr[i])) {
+            num += expr[i++];
+          }
+        }
+      }
+      tokens.push({ type: 'NUMBER', value: num });
+      continue;
+    }
+
+    // Parentheses and brackets
+    if (ch === '(' || ch === '[' || ch === '{') {
+      tokens.push({ type: 'PAREN_OPEN', value: ch });
+      i++;
+      continue;
+    }
+    if (ch === ')' || ch === ']' || ch === '}') {
+      tokens.push({ type: 'PAREN_CLOSE', value: ch });
+      i++;
+      continue;
+    }
+
+    // Comma
+    if (ch === ',') {
+      tokens.push({ type: 'COMMA', value: ch });
+      i++;
+      continue;
+    }
+
+    // Comparison or two-char operators: ==, !=, <=, >=
+    if (
+      (ch === '=' && expr[i + 1] === '=') ||
+      (ch === '!' && expr[i + 1] === '=') ||
+      (ch === '<' && expr[i + 1] === '=') ||
+      (ch === '>' && expr[i + 1] === '=')
+    ) {
+      tokens.push({ type: 'OP', value: expr.slice(i, i + 2) });
+      i += 2;
+      continue;
+    }
+
+    // Single-char operators
+    if (/[\+\-\*\/\^\%<>=!]/.test(ch)) {
+      tokens.push({ type: 'OP', value: ch });
+      i++;
+      continue;
+    }
+
+    // Greek theta symbol
+    if (ch === 'θ') {
+      tokens.push({ type: 'CONST', value: 'theta' });
+      i++;
+      continue;
+    }
+
+    // Alphabetic sequences (words)
+    if (/[a-zA-Z_]/.test(ch)) {
+      let word = '';
+      while (i < len && /[a-zA-Z0-9_]/.test(expr[i])) {
+        word += expr[i++];
+      }
+
+      let remaining = word;
+      while (remaining.length > 0) {
+        // Try matching a known function
+        const matchedFunc = KNOWN_FUNCTIONS.find(fn => {
+          if (remaining.toLowerCase().startsWith(fn)) {
+            return true;
+          }
+          return false;
+        });
+
+        if (matchedFunc) {
+          tokens.push({ type: 'FUNC', value: matchedFunc });
+          remaining = remaining.slice(matchedFunc.length);
+          continue;
+        }
+
+        // Try matching a known multi-letter constant
+        const matchedConst = KNOWN_MULTI_CONSTANTS.find(cn => {
+          return remaining.toLowerCase().startsWith(cn.toLowerCase());
+        });
+
+        if (matchedConst) {
+          tokens.push({ type: 'CONST', value: matchedConst });
+          remaining = remaining.slice(matchedConst.length);
+          continue;
+        }
+
+        // Single-letter variable/parameter
+        const singleChar = remaining[0];
+        tokens.push({ type: 'VAR', value: singleChar });
+        remaining = remaining.slice(1);
+      }
+      continue;
+    }
+
+    tokens.push({ type: 'OP', value: ch });
+    i++;
+  }
+
+  return tokens;
+}
+
+/**
+ * Expands mathematical shorthand like `mx` -> `m * x`, `2x` -> `2 * x`,
+ * `(x+1)(x-1)` -> `(x+1) * (x-1)`, and `sin(mx)` -> `sin(m * x)`.
+ */
+export function expandImplicitMultiplication(expr: string): string {
+  if (!expr.trim()) return '';
+  const tokens = tokenize(expr);
+  if (tokens.length === 0) return '';
+
+  const result: string[] = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    const cur = tokens[i];
+    if (cur.type === 'SPACE') {
+      result.push(' ');
+      continue;
+    }
+
+    if (result.length > 0) {
+      let prevIdx = i - 1;
+      let hadSpace = false;
+      while (prevIdx >= 0 && tokens[prevIdx].type === 'SPACE') {
+        hadSpace = true;
+        prevIdx--;
+      }
+
+      if (prevIdx >= 0) {
+        const prev = tokens[prevIdx];
+        const prevCanEndMult =
+          prev.type === 'NUMBER' ||
+          prev.type === 'VAR' ||
+          prev.type === 'CONST' ||
+          prev.type === 'PAREN_CLOSE';
+
+        const curCanStartMult =
+          cur.type === 'NUMBER' ||
+          cur.type === 'VAR' ||
+          cur.type === 'CONST' ||
+          cur.type === 'FUNC' ||
+          cur.type === 'PAREN_OPEN';
+
+        if (prevCanEndMult && curCanStartMult) {
+          if (hadSpace) {
+            while (result.length > 0 && result[result.length - 1] === ' ') {
+              result.pop();
+            }
+          }
+          result.push(' * ');
+        }
+      }
+    }
+
+    result.push(cur.value);
+  }
+
+  return result.join('');
+}
+
 // ── normalise: strip "y =" / "r =" / "f(x) =" prefixes ──────────────────
 function normalize(raw: string): string {
-  return raw.replace(/^[a-zA-Z]\s*(?:\([a-zA-Z]\))?\s*=\s*/, '').trim();
+  const stripped = raw.replace(/^[a-zA-Z]\s*(?:\([a-zA-Z]\))?\s*=\s*/, '').trim();
+  return expandImplicitMultiplication(stripped);
 }
 
 // ── public: parse a Cartesian expression ─────────────────────────────────
@@ -79,12 +305,12 @@ export function parseWithScope(
 // would otherwise look like user variables after we strip function calls.
 const KNOWN_CONSTANTS = new Set([
   'pi', 'phi', 'tau', 'Infinity', 'NaN', 'true', 'false',
-  'e',  'i',   'x',  't', 'theta', 'r',
+  'e',  'i',   'x',  'y', 'z', 't', 'theta', 'r',
 ]);
 
 /**
  * Returns the set of single-letter free parameters found in `raw` —
- * i.e. letters that are not x/t/e/i/pi and are not mathjs function names.
+ * i.e. letters that are not x/y/z/t/e/i/pi and are not mathjs function names.
  *
  * Example: "a * sin(b * x) + c" → ['a', 'b', 'c']
  */
@@ -111,7 +337,7 @@ export function detectParameters(raw: string): string[] {
     let s = expr;
     s = s.replace(/\b[a-zA-Z][a-zA-Z0-9_]*\s*\(/g, '(');   // strip fn names
     s = s.replace(/\b(pi|phi|tau|Infinity|NaN|true|false)\b/gi, '0');
-    s = s.replace(/\b(x|t|theta|e|i|r)\b/g, '0');
+    s = s.replace(/\b(x|y|z|t|theta|e|i|r)\b/g, '0');
     return [...new Set(s.match(/\b[a-zA-Z]\b/g) ?? [])];
   }
 }
