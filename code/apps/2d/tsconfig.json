@@ -20,5 +20,7 @@
       "@quickplot/core":     ["../../packages/core/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/features/data", "src/lib/graph-export.ts", "src/lib/download.ts"]
 }
+
