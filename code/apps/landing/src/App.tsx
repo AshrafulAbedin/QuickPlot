@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@quickplot/auth';
+import { useToast } from './components/toast';
 import { Backdrop } from './components/Backdrop';
 import { EmbossButton } from './components/EmbossButton';
 import { JumpyWord } from './components/JumpyWord';
@@ -21,6 +22,7 @@ const ROTATING_WORDS = ['seconds', 'one line', '2D & 3D', 'polar', 'real time','
 function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: AuthIntent) => void, onStartPlotting: () => void, showLauncher: boolean }) {
   const wordIndex = useWordCycle(ROTATING_WORDS.length);
   const { user, signOut } = useAuth();
+  const toast = useToast();
 
   return (
     <div className="animate-rise flex w-full max-w-[420px] flex-col items-center">
@@ -43,7 +45,16 @@ function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: Auth
       {user ? (
         <div className="mt-11 w-full text-center">
           <p className="text-sm text-neutral-300">Signed in as {user.displayName ?? user.email}</p>
-          <button type="button" onClick={() => void signOut()} className="mt-3 text-sm text-amber-500 underline underline-offset-4 hover:text-amber-400">Sign out</button>
+          <button
+            type="button"
+            onClick={async () => {
+              await signOut();
+              toast.info('You have been signed out.');
+            }}
+            className="mt-3 text-sm text-amber-500 underline underline-offset-4 hover:text-amber-400"
+          >
+            Sign out
+          </button>
         </div>
       ) : (
       <nav aria-label="Account" className="mt-11 flex w-full flex-col gap-5">

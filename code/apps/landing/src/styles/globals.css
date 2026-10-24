@@ -245,6 +245,130 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Toast notification system (Frosted Glass + Obsidian glow)         */
+/* ------------------------------------------------------------------ */
+
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+  max-width: calc(100vw - 3rem);
+  width: 380px;
+}
+
+.toast-item {
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1.125rem;
+  border-radius: 0.875rem;
+  background: rgba(28, 26, 23, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 4px solid var(--toast-accent);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+  color: #f5f5f5;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.45;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.toast-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px -4px rgba(0, 0, 0, 0.75), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.toast-glow {
+  position: absolute;
+  inset: -10px;
+  background: radial-gradient(circle at 20% 50%, var(--toast-glow), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(12px);
+}
+
+.toast-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  color: var(--toast-accent);
+  position: relative;
+  z-index: 1;
+}
+
+.toast-message {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  word-break: break-word;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: var(--toast-accent);
+  opacity: 0.75;
+  transform-origin: left center;
+  animation: toast-shrink var(--toast-duration, 5000ms) linear forwards;
+  z-index: 2;
+}
+
+.toast-entering {
+  animation: toast-slide-in 0.36s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+.toast-dismissing {
+  animation: toast-slide-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(110%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(110%) scale(0.92);
+  }
+}
+
+@keyframes toast-shrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 /* Honour the OS "reduce motion" setting: keep the final frame, drop the
    movement. Matches the reference, which gates the looping effects the
    same way. */
@@ -258,6 +382,15 @@ body {
   }
 
   .sparks__layer {
+    display: none;
+  }
+
+  .toast-entering,
+  .toast-dismissing {
+    animation: none !important;
+  }
+
+  .toast-progress {
     display: none;
   }
 }

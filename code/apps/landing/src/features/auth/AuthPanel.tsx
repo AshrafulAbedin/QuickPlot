@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { hasAuthConfig, useAuth } from '@quickplot/auth';
+import { useToast } from '../../components/toast';
 import { GoogleButton } from './GoogleButton';
 
 export type AuthIntent = 'signin' | 'register';
@@ -31,24 +32,28 @@ interface AuthPanelProps {
 }
 
 export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
-  const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { user, loginWithGoogle, signOut } = useAuth();
+  const toast = useToast();
   const copy = COPY[intent];
 
   const handleGoogle = async () => {
     if (!hasAuthConfig()) {
-      setNotice('Google sign-in needs Firebase settings. Copy code/.env.example to code/.env and add the project values.');
+      toast.error('Google sign-in needs Firebase settings. Copy code/.env.example to code/.env and add the project values.');
       return;
     }
 
     try {
       setSubmitting(true);
-      setNotice('');
       await loginWithGoogle();
+      toast.success(intent === 'register' ? 'Account created! Welcome to QuickPlot.' : 'Welcome back!');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Google sign-in failed.';
-      setNotice(message.includes('popup-closed-by-user') ? 'Sign-in was cancelled. Try again when you are ready.' : `Google sign-in failed: ${message}`);
+      if (message.includes('popup-closed-by-user')) {
+        toast.info('Sign-in was cancelled. Try again when you are ready.');
+      } else {
+        toast.error(`Google sign-in failed: ${message}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -85,7 +90,14 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
         >
           Open 3D grapher
         </button>
-        <button type="button" onClick={() => void signOut()} className="mt-6 w-full text-sm text-neutral-400 underline underline-offset-4 hover:text-amber-400">
+        <button
+          type="button"
+          onClick={async () => {
+            await signOut();
+            toast.info('You have been signed out.');
+          }}
+          className="mt-6 w-full text-sm text-neutral-400 underline underline-offset-4 hover:text-amber-400"
+        >
           Sign out
         </button>
       </div>
@@ -123,12 +135,6 @@ export function AuthPanel({ intent, onBack, onSwitch }: AuthPanelProps) {
       <div className="mt-9">
         <GoogleButton label={submitting ? 'Opening Google…' : copy.cta} onClick={handleGoogle} disabled={submitting} />
       </div>
-
-      {notice && (
-        <p role="status" className="mt-4 text-center text-xs font-light text-amber-400/90">
-          {notice}
-        </p>
-      )}
 
       <p className="mt-8 text-center text-sm font-light text-neutral-400">
         {intent === 'signin' ? (
