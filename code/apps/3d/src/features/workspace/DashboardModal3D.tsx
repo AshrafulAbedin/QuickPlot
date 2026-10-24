@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import type { LocalWorkspace3D } from './useLocalWorkspaces3D';
 import { STARTER_TEMPLATES_3D } from './useLocalWorkspaces3D';
 import type { Surface } from '../canvas-3d/Renderer3D';
+import { useToast } from '../../components/toast';
 
 import type { AuthUser } from '@quickplot/auth';
 
@@ -36,6 +37,7 @@ export function DashboardModal3D({
   user,
   onOpenAuth,
 }: Props) {
+  const toast = useToast();
   const [tab, setTab] = useState<'saved' | 'templates'>('saved');
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -71,6 +73,7 @@ export function DashboardModal3D({
   const handleCommitRename = (id: string) => {
     if (editTitle.trim()) {
       onRename(id, editTitle.trim());
+      toast.success(`Renamed to "${editTitle.trim()}"`);
     }
     setEditingId(null);
   };
@@ -84,9 +87,11 @@ export function DashboardModal3D({
       const count = onImport(text);
       if (count > 0) {
         setImportStatus(`Successfully imported ${count} graph(s)!`);
+        toast.success(`Successfully imported ${count} 3D graph(s)!`);
         setTimeout(() => setImportStatus(null), 3000);
       } else {
         setImportStatus('Invalid JSON format for 3D workspaces.');
+        toast.error('Invalid JSON format for 3D workspaces.');
         setTimeout(() => setImportStatus(null), 3000);
       }
     };
@@ -307,14 +312,20 @@ export function DashboardModal3D({
                               ✎
                             </button>
                             <button
-                              onClick={() => onDuplicate(ws.id)}
+                              onClick={() => {
+                                onDuplicate(ws.id);
+                                toast.success(`Duplicated "${ws.title}"`);
+                              }}
                               title="Duplicate"
                               className="w-6 h-6 rounded flex items-center justify-center text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700/60 text-xs"
                             >
                               ⧉
                             </button>
                             <button
-                              onClick={() => onDelete(ws.id)}
+                              onClick={() => {
+                                onDelete(ws.id);
+                                toast.info(`Deleted "${ws.title}"`);
+                              }}
                               title="Delete"
                               className="w-6 h-6 rounded flex items-center justify-center text-neutral-400 hover:text-red-400 hover:bg-red-500/10 text-xs transition-colors"
                             >
@@ -383,7 +394,11 @@ export function DashboardModal3D({
                       {tmpl.wireframe ? 'Wireframe' : 'Solid'} · {tmpl.themeName}
                     </span>
                     <button
-                      onClick={() => { onApplyTemplate(tmpl); onClose(); }}
+                      onClick={() => {
+                        onApplyTemplate(tmpl);
+                        toast.info(`Loaded template "${tmpl.title}"`);
+                        onClose();
+                      }}
                       className="px-3 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-mono transition-all active:scale-95"
                     >
                       Use Template
@@ -412,7 +427,10 @@ export function DashboardModal3D({
               <span>↑ Import JSON</span>
             </button>
             <button
-              onClick={onExport}
+              onClick={() => {
+                onExport();
+                toast.success(`Exported ${workspaces.length} 3D workspace(s)`);
+              }}
               disabled={workspaces.length === 0}
               className="px-2.5 py-1 text-xs font-mono text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 rounded border border-neutral-700/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
             >

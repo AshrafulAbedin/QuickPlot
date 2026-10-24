@@ -3,9 +3,11 @@ import { Renderer3D, type Renderer3DHandle } from './features/canvas-3d/Renderer
 import type { Surface, PointDataset } from './features/canvas-3d/Renderer3D';
 import {
   validate3DExpression,
+  evaluate3D,
   parseJsonData3D, parseCsvData3D, boundsOf,
   type DataPoint3D,
 } from '@quickplot/core-3d';
+import { useToast } from './components/toast';
 import { SurfaceRow } from './features/canvas-3d/SurfaceRow';
 import { ThemePicker } from './features/theme/ThemePicker';
 import { HelpPanel } from './features/help/HelpPanel';
@@ -123,6 +125,7 @@ const CORNER_TOGGLE_CLASSES: Record<CalcCorner, string> = {
 
 export default function App() {
   const canvasHandle = useRef<Renderer3DHandle>(null);
+  const toast = useToast();
 
   const [surfaces, setSurfaces]           = useState<Surface[]>(_fromHash?.surfaces ?? DEFAULT_SURFACES);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -171,15 +174,52 @@ export default function App() {
     document.title = `${workspaceName || DEFAULT_WORKSPACE_NAME_3D} | QuickPlot 3D`;
   }, [workspaceName]);
 
+  // Proactively check for 3D surfaces with empty domain / non-real evaluation
+  const warnedSurfacesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    surfaces.forEach(s => {
+      const trimmed = s.expr.trim();
+      if (!trimmed || s.hidden) return;
+      if (warnedSurfacesRef.current.has(trimmed)) return;
+
+      const err = validate3DExpression(trimmed);
+      if (err) return;
+
+      const fn = evaluate3D(trimmed);
+      if (!fn) return;
+
+      let hasReal = false;
+      const step = PLOT_BOUND / 4;
+      for (let x = -PLOT_BOUND; x <= PLOT_BOUND; x += step) {
+        for (let y = -PLOT_BOUND; y <= PLOT_BOUND; y += step) {
+          const z = fn(x, y);
+          if (typeof z === 'number' && Number.isFinite(z) && !Number.isNaN(z)) {
+            hasReal = true;
+            break;
+          }
+        }
+        if (hasReal) break;
+      }
+      if (!hasReal) {
+        warnedSurfacesRef.current.add(trimmed);
+        toast.warning(`'z = ${trimmed}' has no real values within plot bounds`);
+      }
+    });
+  }, [surfaces, toast]);
+
   const copyLink = useCallback(async () => {
     const hash = encodeHash(surfaces, workspaceName, wireframe, theme.name);
     window.history.replaceState(null, '', `#${hash}`);
     const url = `${window.location.origin}${window.location.pathname}#${hash}`;
-    try { await navigator.clipboard.writeText(url); }
-    catch { window.prompt('Copy this share link:', url); }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Shareable 3D link copied to clipboard');
+    } catch {
+      window.prompt('Copy this share link:', url);
+    }
     setFlash('link');
     setTimeout(() => setFlash(null), 1800);
-  }, [surfaces, workspaceName, wireframe, theme]);
+  }, [surfaces, workspaceName, wireframe, theme, toast]);
 
   const saveWorkspace = useCallback(async () => {
     if (!user) {
@@ -190,9 +230,10 @@ export default function App() {
     }
     saveLocalWs(workspaceName, surfaces, { wireframe, showAxes, themeName: theme.name });
     await copyLink();
+    toast.success(`Saved workspace "${workspaceName}"`);
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 1400);
-  }, [user, workspaceName, surfaces, wireframe, showAxes, theme, saveLocalWs, copyLink]);
+  }, [user, workspaceName, surfaces, wireframe, showAxes, theme, saveLocalWs, copyLink, toast]);
 
   useEffect(() => {
     if (user && pendingSave) {
@@ -212,7 +253,8 @@ export default function App() {
     ]);
     setDatasets([]);
     window.history.replaceState(null, '', window.location.pathname);
-  }, [setActiveWorkspaceId]);
+    toast.info('Workspace reset to blank state');
+  }, [setActiveWorkspaceId, toast]);
 
   const handleSelectWorkspace = useCallback((ws: LocalWorkspace3D) => {
     setActiveWorkspaceId(ws.id);
@@ -336,31 +378,43 @@ export default function App() {
         pts = parseCsvData3D(text);
       }
       if (!pts.length) {
-        alert(
-          'No valid (x, y, z) triples found.\n\n' +
-          'CSV/TSV: three numeric columns per row.\n' +
-          'JSON: [[x,y,z], …], [{x,y,z}, …], or {x:[…], y:[…], z:[…]}.',
-        );
+        toast.error('No valid (x, y, z) data found. CSV requires 3 numeric columns; JSON requires triples or {x, y, z} arrays.');
         return;
       }
       setDatasets(prev => [
         ...prev,
         { name: file.name, color: PALETTE[(prev.length + 3) % PALETTE.length], points: pts },
       ]);
+      toast.success(`Imported ${pts.length} 3D data points from "${file.name}"`);
+    };
+    reader.onerror = () => {
+      toast.error(`Failed to read file "${file.name}"`);
     };
     reader.readAsText(file);
     e.target.value = '';
-  }, []);
+  }, [toast]);
 
-  const removeDataset = (i: number) => setDatasets(prev => prev.filter((_, idx) => idx !== i));
+  const removeDataset = (i: number) => {
+    setDatasets(prev => {
+      const target = prev[i];
+      if (target) toast.info(`Removed dataset "${target.name}"`);
+      return prev.filter((_, idx) => idx !== i);
+    });
+  };
   const toggleDataset = (i: number) =>
     setDatasets(prev => prev.map((d, idx) => idx === i ? { ...d, hidden: !d.hidden } : d));
 
   const brief = (t: 'image' | 'link') => { setFlash(t); setTimeout(() => setFlash(null), 1800); };
 
   const copyImage = useCallback(async () => {
-    await canvasHandle.current?.copyImage(); brief('image');
-  }, []);
+    try {
+      await canvasHandle.current?.copyImage();
+      toast.success('3D canvas image copied to clipboard');
+      brief('image');
+    } catch {
+      toast.error('Failed to copy 3D image to clipboard');
+    }
+  }, [toast]);
 
   const {
     topbarTools,

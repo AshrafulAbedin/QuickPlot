@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import type { Surface } from './Renderer3D';
 import { ColorPalettePopover } from './ColorPalettePopover';
+import { useToast } from '../../components/toast';
 
 interface Props {
   surface: Surface;
@@ -14,6 +15,7 @@ interface Props {
 export function SurfaceRow({ surface, autoFocus, onChange, onDelete, error, registerInput }: Props) {
   const [showPalette, setShowPalette] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
   
   useEffect(() => { if (autoFocus) inputRef.current?.focus(); }, [autoFocus]);
   useEffect(() => {
@@ -21,6 +23,20 @@ export function SurfaceRow({ surface, autoFocus, onChange, onDelete, error, regi
     const cleanup = registerInput(inputRef.current);
     return typeof cleanup === 'function' ? cleanup : undefined;
   }, [registerInput]);
+
+  const handleBlur = () => {
+    if (error && surface.expr.trim()) {
+      toast.error(`Invalid 3D expression: ${error}`);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      if (error && surface.expr.trim()) {
+        toast.error(`Invalid 3D expression: ${error}`);
+      }
+    }
+  };
 
   const hidden = surface.hidden ?? false;
 
@@ -62,6 +78,8 @@ export function SurfaceRow({ surface, autoFocus, onChange, onDelete, error, regi
               error ? 'border-red-500 focus:border-red-400' : 'border-transparent focus:border-amber-400',
             ].join(' ')}
             onChange={(e) => onChange({ expr: e.target.value })}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
           />
         </div>
 
@@ -77,7 +95,10 @@ export function SurfaceRow({ surface, autoFocus, onChange, onDelete, error, regi
         <button
           title="Remove"
           className="text-neutral-600 hover:text-red-400 transition-colors text-base leading-none w-4 text-center"
-          onClick={onDelete}
+          onClick={() => {
+            onDelete();
+            toast.info(`Removed surface ${surface.expr ? `'z = ${surface.expr}'` : ''}`);
+          }}
         >
           ×
         </button>
