@@ -13,6 +13,7 @@ import {
   type CanvasTheme, DEFAULT_THEME,
 } from '@quickplot/renderer';
 import type { ViewportState } from '@quickplot/types';
+import { useToast } from '../../components/toast';
 
 // Precision: number of decimal places appropriate for the current zoom level
 function coordPrec(scale: number): number {
@@ -40,6 +41,8 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
   const vpRef      = useRef<Viewport>(DEFAULT_VIEWPORT);
   const dragging   = useRef(false);
   const lastPos    = useRef({ x: 0, y: 0 });
+  const toast      = useToast();
+  const warnedCurves = useRef<Set<string>>(new Set());
 
   const [viewport,    setViewport]    = useState<Viewport>(DEFAULT_VIEWPORT);
   const [mouseWorld,  setMouseWorld]  = useState<[number, number] | null>(null);
@@ -158,6 +161,95 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
     drawCurves(ctx, viewport, curves, specialPoints);
     ctx.restore();
   }, [viewport, curves, specialPoints, theme]);
+
+  // ── detect domain / non-real evaluation failures ─────────────────────
+  useEffect(() => {
+    if (curves.length === 0 || viewport.width === 0) return;
+    const [xMin] = screenToWorld(viewport, 0, 0);
+    const [xMax] = screenToWorld(viewport, viewport.width, 0);
+    const currentLabels = new Set<string>();
+
+    for (const curve of curves) {
+      if (!curve.label) continue;
+      currentLabels.add(curve.label);
+
+      if (curve.kind === 'cartesian') {
+        const step = (xMax - xMin) / 40;
+        let hasReal = false;
+        for (let i = 0; i <= 40; i++) {
+          try {
+            const val = curve.fn(xMin + i * step);
+            if (isFinite(val)) {
+              hasReal = true;
+              break;
+            }
+          } catch {
+            /* non-real / outside domain */
+          }
+        }
+        if (!hasReal) {
+          if (!warnedCurves.current.has(curve.label)) {
+            warnedCurves.current.add(curve.label);
+            toast.warning(`'${curve.label}' has no real values in the current viewport.`);
+          }
+        } else {
+          warnedCurves.current.delete(curve.label);
+        }
+      } else if (curve.kind === 'polar') {
+        const step = (curve.thetaMax - curve.thetaMin) / 40;
+        let hasReal = false;
+        for (let i = 0; i <= 40; i++) {
+          try {
+            const r = curve.fn(curve.thetaMin + i * step);
+            if (isFinite(r)) {
+              hasReal = true;
+              break;
+            }
+          } catch {
+            /* non-real */
+          }
+        }
+        if (!hasReal) {
+          if (!warnedCurves.current.has(curve.label)) {
+            warnedCurves.current.add(curve.label);
+            toast.warning(`'${curve.label}' has no real values in the current angle range.`);
+          }
+        } else {
+          warnedCurves.current.delete(curve.label);
+        }
+      } else if (curve.kind === 'parametric') {
+        const step = (curve.tMax - curve.tMin) / 40;
+        let hasReal = false;
+        for (let i = 0; i <= 40; i++) {
+          try {
+            const x = curve.fnX(curve.tMin + i * step);
+            const y = curve.fnY(curve.tMin + i * step);
+            if (isFinite(x) && isFinite(y)) {
+              hasReal = true;
+              break;
+            }
+          } catch {
+            /* non-real */
+          }
+        }
+        if (!hasReal) {
+          if (!warnedCurves.current.has(curve.label)) {
+            warnedCurves.current.add(curve.label);
+            toast.warning(`Parametric curve '${curve.label}' has no real values in parameter range.`);
+          }
+        } else {
+          warnedCurves.current.delete(curve.label);
+        }
+      }
+    }
+
+    // Clean up warning memory for deleted curves
+    for (const label of Array.from(warnedCurves.current)) {
+      if (!currentLabels.has(label)) {
+        warnedCurves.current.delete(label);
+      }
+    }
+  }, [curves, viewport, toast]);
 
   // ── mouse ─────────────────────────────────────────────────────────────
   const dragRaf = useRef<number | null>(null);

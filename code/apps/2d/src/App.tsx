@@ -30,6 +30,7 @@ import { Calculator, type CalcCorner } from './features/calculator/Calculator';
 import { useFocusedInput } from './features/calculator/useFocusedInput';
 import { AuthButton } from './features/auth/AuthButton';
 import { useAuth } from '@quickplot/auth';
+import { useToast } from './components/toast';
 import type { PlotCurve, SpecialPoint, CanvasTheme } from '@quickplot/renderer';
 import { DEFAULT_THEME, THEMES } from '@quickplot/renderer';
 
@@ -154,6 +155,7 @@ export default function App() {
   const { activeTraces, traceSnap, startTrace } = useTraceAnimation();
 
   const { user } = useAuth();
+  const toast = useToast();
   const {
     workspaces,
     activeWorkspaceId,
@@ -357,10 +359,14 @@ export default function App() {
   const addManualPoint = useCallback(() => {
     const x = parseFloat(ptX);
     const y = parseFloat(ptY);
-    if (!isFinite(x) || !isFinite(y)) return;
+    if (!isFinite(x) || !isFinite(y)) {
+      toast.warning('Please enter valid numeric coordinates for X and Y.');
+      return;
+    }
     addPoints([{ x, y }], '__manual__');
+    toast.success(`Point (${x}, ${y}) added to dataset`);
     setPtX(''); setPtY('');
-  }, [ptX, ptY, addPoints]);
+  }, [ptX, ptY, addPoints, toast]);
 
   // ── file upload (JSON + CSV) ────────────────────────────────────────────
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -377,30 +383,48 @@ export default function App() {
           pts = parseJsonData(JSON.parse(text));
         }
       } catch {
-        pts = parseCsvData(text);
+        try {
+          pts = parseCsvData(text);
+        } catch {
+          pts = [];
+        }
       }
-      if (!pts.length) { alert('No valid x, y pairs found in the file.'); return; }
+      if (!pts.length) {
+        toast.error(`No valid (x, y) coordinates found in ${file.name}.`);
+        return;
+      }
       addPoints(pts, file.name);
+      toast.success(`Successfully imported ${pts.length} data points from ${file.name}`);
     };
     reader.readAsText(file);
     e.target.value = '';
-  }, [addPoints]);
+  }, [addPoints, toast]);
 
   // ── share actions ───────────────────────────────────────────────────────
   const brief = (t: 'image' | 'link') => { setFlash(t); setTimeout(() => setFlash(null), 1800); };
 
   const copyImage = useCallback(async () => {
-    await canvasHandle.current?.copyImage(); brief('image');
-  }, []);
+    try {
+      await canvasHandle.current?.copyImage();
+      toast.success('Graph image copied to clipboard!');
+    } catch {
+      toast.error('Failed to copy graph image to clipboard.');
+    }
+    brief('image');
+  }, [toast]);
 
   const copyLink = useCallback(async () => {
     const hash = encodeHash(equations, sliders, workspaceName);
     window.history.replaceState(null, '', `#${hash}`);
     const url = `${window.location.origin}${window.location.pathname}#${hash}`;
-    try { await navigator.clipboard.writeText(url); }
-    catch { window.prompt('Copy this share link:', url); }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Shareable graph link copied to clipboard!');
+    } catch {
+      window.prompt('Copy this share link:', url);
+    }
     brief('link');
-  }, [equations, sliders, workspaceName]);
+  }, [equations, sliders, workspaceName, toast]);
 
   const saveWorkspace = useCallback(async () => {
     if (!user) {
@@ -416,9 +440,10 @@ export default function App() {
       themeName: theme.name,
     });
     await copyLink();
+    toast.success(`Workspace "${workspaceName}" saved.`);
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 1800);
-  }, [user, saveLocalWs, workspaceName, equations, sliders, theme.name, copyLink]);
+  }, [user, saveLocalWs, workspaceName, equations, sliders, theme.name, copyLink, toast]);
 
   // Execute pending save as soon as user signs in or registers
   useEffect(() => {

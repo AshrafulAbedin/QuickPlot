@@ -4,6 +4,7 @@ import { STARTER_TEMPLATES } from './useLocalWorkspaces';
 import type { EquationEntry } from '../equations/types';
 import type { Slider } from '../sliders/SliderPanel';
 import type { AuthUser } from '@quickplot/auth';
+import { useToast } from '../../components/toast';
 
 interface Props {
   open: boolean;
@@ -60,6 +61,7 @@ export function DashboardModal({
   user,
   onOpenAuth,
 }: Props) {
+  const toast = useToast();
   const [tab, setTab] = useState<'saved' | 'templates'>('saved');
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,6 +89,7 @@ export function DashboardModal({
   const handleCommitRename = (id: string) => {
     if (editTitle.trim()) {
       onRename(id, editTitle.trim());
+      toast.success(`Renamed to "${editTitle.trim()}"`);
     }
     setEditingId(null);
   };
@@ -100,8 +103,10 @@ export function DashboardModal({
       const res = onImport(text);
       if (res.error) {
         setFeedback(`Import error: ${res.error}`);
+        toast.error(`Import error: ${res.error}`);
       } else {
         setFeedback(`Imported ${res.count} workspace(s) successfully!`);
+        toast.success(`Imported ${res.count} workspace(s) successfully!`);
       }
       setTimeout(() => setFeedback(null), 3000);
     };
@@ -225,7 +230,10 @@ export function DashboardModal({
               <span>Import</span>
             </button>
             <button
-              onClick={onExportAll}
+              onClick={() => {
+                onExportAll();
+                toast.success(`Exported ${workspaces.length} workspace(s)`);
+              }}
               disabled={workspaces.length === 0}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-amber-300 border border-neutral-700/70 text-xs font-mono transition-all active:scale-95 shadow-sm disabled:opacity-40 disabled:pointer-events-none"
               title="Export all workspaces to JSON file"
@@ -399,6 +407,7 @@ export function DashboardModal({
                             onClick={(e) => {
                               e.stopPropagation();
                               onDuplicate(ws.id);
+                              toast.success(`Duplicated "${ws.title}"`);
                             }}
                             className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors"
                             title="Duplicate workspace"
@@ -416,6 +425,7 @@ export function DashboardModal({
                                   onDelete(ws.id);
                                   setConfirmDeleteId(null);
                                   setFeedback(`Deleted "${ws.title}"`);
+                                  toast.info(`Deleted "${ws.title}"`);
                                   setTimeout(() => setFeedback(null), 2500);
                                 }}
                                 className="px-2 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-[10px] font-mono font-bold transition-all active:scale-95"
@@ -544,6 +554,7 @@ export function DashboardModal({
                     <button
                       onClick={() => {
                         onLoadTemplate(tmpl);
+                        toast.info(`Loaded template "${tmpl.title}"`);
                         onClose();
                       }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-mono font-medium transition-all shadow-sm active:scale-95"

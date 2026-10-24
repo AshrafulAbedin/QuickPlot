@@ -4,6 +4,7 @@ import { detectEquationType } from './detectType';
 import { InlineSliderRow } from '../sliders/InlineSliderRow';
 import type { Slider } from '../sliders/SliderPanel';
 import { ColorPalettePopover } from './ColorPalettePopover';
+import { useToast } from '../../components/toast';
 
 interface Props {
   entry: EquationEntry;
@@ -80,12 +81,28 @@ function Inp({
   register?: (el: HTMLInputElement | null) => (() => void) | void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+
   useEffect(() => { if (autoFocus) ref.current?.focus(); }, [autoFocus]);
   useEffect(() => {
     if (!register) return;
     const cleanup = register(ref.current);
     return typeof cleanup === 'function' ? cleanup : undefined;
   }, [register]);
+
+  const handleBlur = () => {
+    if (error && value.trim()) {
+      toast.error(`Invalid equation: ${error}`);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      if (error && value.trim()) {
+        toast.error(`Invalid equation: ${error}`);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -105,6 +122,8 @@ function Inp({
             error ? 'border-red-500 focus:border-red-400' : 'border-transparent focus:border-amber-400',
           ].join(' ')}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
         />
       </div>
       {error && (
@@ -123,6 +142,7 @@ export function EquationRow({
   registerInput,
 }: Props) {
   const [showPalette, setShowPalette] = useState(false);
+  const toast = useToast();
   // `autoDetect` defaults to true so existing entries (loaded from hash /
   // localStorage) opt in without a migration.
   const autoDetect = entry.autoDetect !== false;
@@ -215,7 +235,13 @@ export function EquationRow({
         {entry.type !== 'points' && onTrace && (
           <button
             title={isTracing ? 'Tracing…' : 'Animate curve drawing'}
-            onClick={onTrace}
+            onClick={() => {
+              if (entry.error || entry.errorY) {
+                toast.error(`Cannot trace equation with error: ${entry.error || entry.errorY}`);
+                return;
+              }
+              onTrace();
+            }}
             className={[
               'w-6 h-6 rounded-md flex items-center justify-center transition-all shadow-xs active:scale-90',
               isTracing
@@ -239,7 +265,13 @@ export function EquationRow({
                 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm shadow-amber-500/10'
                 : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/80',
             ].join(' ')}
-            onClick={() => onChange({ showDerivative: !entry.showDerivative })}
+            onClick={() => {
+              if (entry.error) {
+                toast.warning(`Cannot compute derivative: ${entry.error}`);
+                return;
+              }
+              onChange({ showDerivative: !entry.showDerivative });
+            }}
           >
             f′
           </button>
@@ -265,7 +297,10 @@ export function EquationRow({
         <button
           title="Delete equation"
           className="w-6 h-6 rounded-md flex items-center justify-center text-neutral-500 hover:text-red-400 hover:bg-red-500/15 transition-all active:scale-90"
-          onClick={onDelete}
+          onClick={() => {
+            onDelete();
+            toast.info(`Removed equation ${entry.expression ? `'${entry.expression}'` : ''}`);
+          }}
         >
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
