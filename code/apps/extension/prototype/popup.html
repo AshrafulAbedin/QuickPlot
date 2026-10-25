@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>QuickPlot OCR</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <h1>QuickPlot OCR</h1>
+    <p class="muted">Select an equation region on a webpage, or upload a screenshot/crop from a PDF.</p>
+    <button id="select">Select equation on current page</button>
+    <label class="file-label" for="image">Or upload equation image</label>
+    <input id="image" type="file" accept="image/*">
+    <canvas id="preview" hidden></canvas>
+    <label for="equation">OCR result (edit if needed)</label>
+    <textarea id="equation" rows="3" placeholder="e.g. y = x^2 + 3"></textarea>
+    <div class="actions">
+      <button id="recognize" class="secondary">Run local OCR</button>
+      <button id="open">Open in QuickPlot</button>
+    </div>
+    <p id="status" role="status" class="muted">OCR runs in your browser after the OCR library loads.</p>
+  </main>
+  <!-- Free open-source OCR library. The library is fetched from a CDN; recognition itself runs in-browser. -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

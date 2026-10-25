@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "QuickPlot Local Equation OCR",
+  "version": "0.1.0",
+  "description": "Select an equation region, run browser-side OCR, then open it in QuickPlot.",
+  "permissions": ["activeTab", "storage", "contextMenus", "tabs"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_popup": "popup.html", "default_title": "QuickPlot OCR"},
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

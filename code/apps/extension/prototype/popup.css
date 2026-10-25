@@ -1,0 +1,14 @@
+* { box-sizing: border-box; }
+body { margin: 0; width: 340px; color: #182033; font: 14px/1.45 system-ui, sans-serif; background: #f7f8fb; }
+main { padding: 16px; }
+h1 { font-size: 19px; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+.muted { color: #626b7b; font-size: 12px; }
+button, input, textarea { width: 100%; font: inherit; }
+button { border: 0; border-radius: 8px; padding: 10px 12px; background: #2459d3; color: white; cursor: pointer; margin: 5px 0; }
+button.secondary { background: #e3e8f3; color: #182033; }
+.file-label, label[for="equation"] { display: block; font-weight: 600; margin: 12px 0 5px; }
+input[type=file] { font-size: 12px; }
+textarea { border: 1px solid #cbd2df; border-radius: 8px; padding: 9px; resize: vertical; background: white; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#status { min-height: 28px; margin-top: 8px; }
