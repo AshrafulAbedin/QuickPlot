@@ -34,7 +34,7 @@ const ALLOWED_MATH_IDENTIFIERS = new Set([
   'sec', 'csc', 'cot', 'asec', 'acsc', 'acot',
   'exp', 'log', 'ln', 'log10', 'log2',
   'sqrt', 'cbrt', 'abs', 'sign',
-  'pi', 'tau', 'phi', 'e', 'infinity', 'inf',
+  'pi', 'tau', 'phi', 'e', 'i', 'infinity', 'inf',
   'round', 'floor', 'ceil', 'min', 'max', 'mod',
   'x', 'y', 't', 'theta', 'r', 'f', 'g', 'z',
 ]);
@@ -74,6 +74,15 @@ export function cleanRawInput(raw: string): string {
 
   // Bracket trailing exponent without caret e.g. ')3' -> ')^3'
   cleaned = cleaned.replace(/[\)\]]\s*([2-9]|\d+)\b/g, ')^$1');
+
+  // Euler's identity: small superscript 'iπ' in textbooks has vertical stems that Tesseract reads as '”', '"', "''", '’', '″'
+  // e.g. e” + 1 = 0, e" + 1 = 0, e'' + 1 = 0, e^” + 1 = 0, e^" + 1 = 0 -> e^(i*pi) + 1 = 0
+  cleaned = cleaned.replace(/\be\s*\^?\s*["”'’“‘″′]{1,2}(?=\s*[+\-=]|\s*$|\s*\))/gi, 'e^(i*pi)');
+  cleaned = cleaned.replace(/\be\s*\^\s*\{?\s*i\s*\*?\s*(?:pi|π)\s*\}?/gi, 'e^(i*pi)');
+  cleaned = cleaned.replace(/\be\s*\^\s*\{?\s*(?:pi|π)\s*\*?\s*i\s*\}?/gi, 'e^(i*pi)');
+  cleaned = cleaned.replace(/\be\s*\^\s*\(?\s*i\s*pi\s*\)?/gi, 'e^(i*pi)');
+  cleaned = cleaned.replace(/\be\s*\^\s*\(?\s*pi\s*i\s*\)?/gi, 'e^(i*pi)');
+  cleaned = cleaned.replace(/\beipi\b/gi, 'e^(i*pi)');
 
   // Single-letter coordinate variable powers without caret e.g. '3x2' -> '3x^2', 'x2' -> 'x^2', 'y3' -> 'y^3', 'z2' -> 'z^2'
   // Preceded by anything other than an alphabetic letter (allows coefficient digits, operators, space, parens, start of string)
@@ -343,6 +352,14 @@ function validateImplicit(input: string, raw: string): ValidationResult {
       solutions = solveSingleVariableEquation((val) => {
         return compiled({ x: val, y: val, z: val, t: val });
       }, v);
+    } else if (uniqueVars.length === 0) {
+      // Constant equation without variables (e.g. e^(i*pi) + 1 = 0, 1 = 1)
+      const diff = compiled({ x: 0, y: 0, z: 0, t: 0 });
+      if (Math.abs(diff) < 1e-6) {
+        solutions = ['✓ True identity (Euler\'s Identity: e^(i*pi) + 1 = 0)'];
+      } else {
+        solutions = ['✗ Contradiction (False equation)'];
+      }
     }
 
     return {

@@ -239,9 +239,31 @@ export function expandImplicitMultiplication(expr: string): string {
   return result.join('');
 }
 
+// ── extract real component (handles real numbers and complex results from Euler's identity) ──
+function extractReal(r: unknown): number {
+  if (typeof r === 'number') return r;
+  if (typeof r === 'boolean') return r ? 1 : 0;
+  if (r && typeof r === 'object' && 're' in r && typeof (r as { re: unknown }).re === 'number') {
+    const c = r as { re: number; im?: number };
+    // If purely real or negligible imaginary component (e.g. Euler identity e^(i*pi) + 1 ≈ 0 + 1.2e-16i)
+    if (c.im === undefined || Math.abs(c.im) < 1e-10) {
+      return Math.abs(c.re) < 1e-12 ? 0 : c.re;
+    }
+  }
+  return NaN;
+}
+
 // ── normalise: strip "y =" / "r =" / "f(x) =" prefixes ──────────────────
 function normalize(raw: string): string {
-  const stripped = raw.replace(/^[a-zA-Z]\s*(?:\([a-zA-Z]\))?\s*=\s*/, '').trim();
+  let stripped = raw.replace(/^[a-zA-Z]\s*(?:\([a-zA-Z]\))?\s*=\s*/, '').trim();
+  // Normalize Euler's identity shorthands: e^ipi, e^(ipi), e^{ipi}, e^i*pi -> e^(i*pi)
+  stripped = stripped.replace(/\be\s*\^\s*\{?\s*i\s*\*?\s*(?:pi|π)\s*\}?/gi, 'e^(i*pi)');
+  stripped = stripped.replace(/\be\s*\^\s*\{?\s*(?:pi|π)\s*\*?\s*i\s*\}?/gi, 'e^(i*pi)');
+  stripped = stripped.replace(/\be\s*\^\s*\(?\s*i\s*pi\s*\)?/gi, 'e^(i*pi)');
+  stripped = stripped.replace(/\be\s*\^\s*\(?\s*pi\s*i\s*\)?/gi, 'e^(i*pi)');
+  stripped = stripped.replace(/\beipi\b/gi, 'e^(i*pi)');
+  // OCR quotes / primes misreading: e”, e", e'', e^”, e^" -> e^(i*pi)
+  stripped = stripped.replace(/\be\s*\^?\s*["”'’“‘″′]{1,2}(?=\s*[+\-=]|\s*$|\s*\))/gi, 'e^(i*pi)');
   return expandImplicitMultiplication(stripped);
 }
 
@@ -263,7 +285,7 @@ export function parseExpression(raw: string): (x: number) => number {
     scope.x = x;
     try {
       const r = compiled.evaluate(scope) as unknown;
-      return typeof r === 'number' ? r : NaN;
+      return extractReal(r);
     } catch { return NaN; }
   };
 }
@@ -298,7 +320,7 @@ export function parseWithScope(
   return (scope: Record<string, number>): number => {
     try {
       const r = compiled.evaluate(scope) as unknown;
-      return typeof r === 'number' ? r : NaN;
+      return extractReal(r);
     } catch { return NaN; }
   };
 }
@@ -307,20 +329,31 @@ export function parseWithScope(
 
 // Multi-char mathjs constants / functions that start with a letter and
 // would otherwise look like user variables after we strip function calls.
-const KNOWN_CONSTANTS = new Set([
+const KNOWN_MATH_CONSTANTS = new Set([
   'pi', 'phi', 'tau', 'Infinity', 'NaN', 'true', 'false',
-  'e',  'i',   'x',  'y', 'z', 't', 'theta', 'r',
+  'e',  'i',
+]);
+
+const DEFAULT_IGNORED_VARS = new Set([
+  'x', 'y', 'z', 't', 'theta', 'r',
 ]);
 
 /**
  * Returns the set of single-letter free parameters found in `raw` —
- * i.e. letters that are not x/y/z/t/e/i/pi and are not mathjs function names.
+ * i.e. letters that are not in ignoredVars and are not mathjs constants/functions.
  *
  * Example: "a * sin(b * x) + c" → ['a', 'b', 'c']
  */
-export function detectParameters(raw: string): string[] {
+export function detectParameters(
+  raw: string,
+  ignoredVars?: string[] | Set<string>,
+): string[] {
   const expr = normalize(raw);
   if (!expr) return [];
+  const ignored = ignoredVars
+    ? (ignoredVars instanceof Set ? ignoredVars : new Set(ignoredVars))
+    : DEFAULT_IGNORED_VARS;
+
   try {
     // Use mathjs parse tree to find SymbolNodes that aren't function names
     const ast = parse(expr);
@@ -330,7 +363,7 @@ export function detectParameters(raw: string): string[] {
       if (node.type === 'SymbolNode') {
         const name: string = node.name;
         // single-letter, not a known constant / independent variable
-        if (/^[a-zA-Z]$/.test(name) && !KNOWN_CONSTANTS.has(name)) {
+        if (/^[a-zA-Z]$/.test(name) && !KNOWN_MATH_CONSTANTS.has(name) && !ignored.has(name)) {
           params.add(name);
         }
       }
@@ -341,7 +374,10 @@ export function detectParameters(raw: string): string[] {
     let s = expr;
     s = s.replace(/\b[a-zA-Z][a-zA-Z0-9_]*\s*\(/g, '(');   // strip fn names
     s = s.replace(/\b(pi|phi|tau|Infinity|NaN|true|false)\b/gi, '0');
-    s = s.replace(/\b(x|y|z|t|theta|e|i|r)\b/g, '0');
+    s = s.replace(/\b(e|i)\b/g, '0');
+    ignored.forEach(v => {
+      s = s.replace(new RegExp(`\\b${v}\\b`, 'g'), '0');
+    });
     return [...new Set(s.match(/\b[a-zA-Z]\b/g) ?? [])];
   }
 }

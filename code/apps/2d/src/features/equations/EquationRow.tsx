@@ -7,9 +7,11 @@ import { ColorPalettePopover } from './ColorPalettePopover';
 
 interface Props {
   entry: EquationEntry;
+  index?: number;
   autoFocus?: boolean;
   onChange: (patch: Partial<EquationEntry>) => void;
   onDelete: () => void;
+  onEnter?: () => void;
   onTrace?: () => void;
   isTracing?: boolean;
   /** Sliders whose parameter names appear in this equation. Rendered inline. */
@@ -57,6 +59,12 @@ function reconstructInput(entry: EquationEntry): string {
       return entry.expression ? `r = ${entry.expression}` : '';
     case 'parametric':
       return `(${entry.expression || ''}, ${entry.expressionY || ''})`;
+    case 'points':
+      if (entry.expression && entry.expression !== '__manual__') return entry.expression;
+      if (entry.points && entry.points.length > 0) {
+        return entry.points.map(p => `(${p.x}, ${p.y})`).join(', ');
+      }
+      return '';
     default:
       return entry.expression;
   }
@@ -68,6 +76,7 @@ function Inp({
   error,
   autoFocus,
   onChange,
+  onEnter,
   prefix,
   register,
 }: {
@@ -76,6 +85,7 @@ function Inp({
   error: string | null | undefined;
   autoFocus?: boolean;
   onChange: (v: string) => void;
+  onEnter?: () => void;
   prefix?: string;
   register?: (el: HTMLInputElement | null) => (() => void) | void;
 }) {
@@ -105,6 +115,12 @@ function Inp({
             error ? 'border-red-500 focus:border-red-400' : 'border-transparent focus:border-amber-400',
           ].join(' ')}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onEnter?.();
+            }
+          }}
         />
       </div>
       {error && (
@@ -117,7 +133,7 @@ function Inp({
 }
 
 export function EquationRow({
-  entry, autoFocus, onChange, onDelete, onTrace, isTracing,
+  entry, index, autoFocus, onChange, onDelete, onEnter, onTrace, isTracing,
   inlineSliders, animating,
   onSliderChange, onSliderRangeChange, onSliderStepChange, onToggleSliderAnimation, onSliderLoopModeChange,
   registerInput,
@@ -143,8 +159,15 @@ export function EquationRow({
 
   return (
     <div className="space-y-1 pb-2 border-b border-[#161412]/50 last:border-0">
-      {/* row 1: color + type badge/select + actions + delete */}
+      {/* row 1: index + color + type badge/select + actions + delete */}
       <div className="flex items-center gap-1.5">
+        {/* Desmos-style row index */}
+        {index !== undefined && (
+          <span className="text-[11px] font-mono font-bold text-neutral-500 w-3.5 text-center shrink-0 select-none">
+            {index + 1}
+          </span>
+        )}
+
         {/* modern color swatch with palette popover */}
         <div className="relative shrink-0">
           <button
@@ -275,14 +298,15 @@ export function EquationRow({
       </div>
 
       {/* row 2: expression(s) */}
-      {autoDetect && entry.type !== 'points' ? (
+      {autoDetect && (entry.type !== 'points' || entry.rawInput !== undefined || (!entry.expression && !entry.points?.length)) ? (
         <>
           <Inp
             value={reconstructInput(entry)}
-            placeholder="y = x^2, r = 1+cos(t), (cos(t), sin(t)), x^2+y^2=1, (1,2),(3,4)"
+            placeholder="y = x^2, r = 1+cos(t), (cos(t), sin(t)), x^2+y^2=1, (1,2)"
             error={entry.error || entry.errorY || null}
             autoFocus={autoFocus}
             onChange={onUnifiedChange}
+            onEnter={onEnter}
             register={registerInput}
           />
           {entry.type === 'parametric' && (
@@ -307,6 +331,11 @@ export function EquationRow({
             </div>
           )}
         </>
+      ) : entry.type === 'points' && entry.rawInput === undefined && entry.expression ? (
+        <div className="text-xs text-neutral-500 font-mono truncate px-1">
+          {entry.expression === '__manual__' ? 'manual points' : entry.expression}
+          {' '}({entry.points?.length ?? 0} pts)
+        </div>
       ) : (
         <>
           {entry.type === 'cartesian' && (
@@ -316,6 +345,7 @@ export function EquationRow({
               error={entry.error}
               autoFocus={autoFocus}
               onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+              onEnter={onEnter}
               register={registerInput}
             />
           )}
@@ -327,6 +357,7 @@ export function EquationRow({
               error={entry.error}
               autoFocus={autoFocus}
               onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+              onEnter={onEnter}
               register={registerInput}
             />
           )}
@@ -338,6 +369,7 @@ export function EquationRow({
               error={entry.error}
               autoFocus={autoFocus}
               onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+              onEnter={onEnter}
               register={registerInput}
             />
           )}
@@ -351,6 +383,7 @@ export function EquationRow({
                 autoFocus={autoFocus}
                 prefix="x ="
                 onChange={(v) => onChange({ expression: v, rawInput: undefined })}
+                onEnter={onEnter}
                 register={registerInput}
               />
               <Inp
@@ -359,6 +392,7 @@ export function EquationRow({
                 error={entry.errorY}
                 prefix="y ="
                 onChange={(v) => onChange({ expressionY: v, rawInput: undefined })}
+                onEnter={onEnter}
                 register={registerInput}
               />
               <div className="flex items-center gap-1 text-xs text-neutral-500 font-mono">
@@ -383,13 +417,6 @@ export function EquationRow({
             </>
           )}
         </>
-      )}
-
-      {entry.type === 'points' && (
-        <div className="text-xs text-neutral-500 font-mono truncate px-1">
-          {entry.expression === '__manual__' ? 'manual points' : entry.expression}
-          {' '}({entry.points?.length ?? 0} pts)
-        </div>
       )}
 
       {inlineSliders && inlineSliders.length > 0

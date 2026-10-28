@@ -17,7 +17,7 @@ import type { EquationType } from './features/equations/types';
 import { useEquations, toCurve, uid } from './features/equations/useEquations';
 import { SliderPanel } from './features/sliders/SliderPanel';
 import type { Slider } from './features/sliders/SliderPanel';
-import { useSliders } from './features/sliders/useSliders';
+import { useSliders, getIgnoredVarsForEquation } from './features/sliders/useSliders';
 import { ThemePicker } from './features/theme/ThemePicker';
 import {
   WorkspaceTitle,
@@ -34,6 +34,7 @@ import type { PlotCurve, SpecialPoint, CanvasTheme } from '@quickplot/renderer';
 import { DEFAULT_THEME, THEMES } from '@quickplot/renderer';
 
 import { useCustomToolbar2D, type ToolId2D } from './features/toolbar/useCustomToolbar';
+import { calculateSpecialPoints } from './features/equations/specialPoints';
 
 export type DockableTool = ToolId2D;
 
@@ -56,6 +57,20 @@ function get3DUrl(): string {
     return envUrl;
   }
   return '/3d/';
+}
+
+function getLandingUrl(): string {
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      return 'http://localhost:5173/';
+    }
+  }
+  const envUrl = (import.meta.env as Record<string, string | undefined>).VITE_URL_LANDING;
+  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
+    return envUrl;
+  }
+  return '/';
 }
 
 // ── URL hash codec ────────────────────────────────────────────────────────
@@ -100,7 +115,29 @@ function loadFromHash(): {
 } | null {
   try {
     const h = window.location.hash.slice(1);
-    if (!h) return null;
+    if (!h) {
+      if (typeof window !== 'undefined' && window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        const expr = params.get('expression') || params.get('q');
+        if (expr) {
+          const typeParam = (params.get('type') || 'cartesian') as EquationType;
+          return {
+            equations: [{
+              id: uid(),
+              type: typeParam,
+              expression: expr,
+              tMin: 0,
+              tMax: Math.PI * 2,
+              color: PALETTE[0],
+              visible: true,
+              error: validateExpression(expr),
+            }],
+            sliders: {},
+          };
+        }
+      }
+      return null;
+    }
     const raw = JSON.parse(decodeURIComponent(atob(h)));
     const payload: HashPayload = Array.isArray(raw) ? { eqs: raw } : raw as HashPayload;
 
@@ -170,12 +207,9 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalPrompt, setAuthModalPrompt] = useState<string | undefined>(undefined);
   const [pendingSave, setPendingSave] = useState(false);
-  const [showSpecial,   setShowSpecial]   = useState(false);
   const [flash,         setFlash]         = useState<'image' | 'link' | null>(null);
   const [theme,         setTheme]         = useState<CanvasTheme>(DEFAULT_THEME);
   const [showThemePick, setShowThemePick] = useState(false);
-  const [ptX,           setPtX]           = useState('');
-  const [ptY,           setPtY]           = useState('');
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [saveFlash,     setSaveFlash]     = useState(false);
   const [showKeyboard,  setShowKeyboard]  = useState(false);
@@ -270,9 +304,14 @@ export default function App() {
     const map = new Map<string, Set<string>>();
     const union = new Set<string>();
     equations.forEach(eq => {
+      if (eq.type === 'points') {
+        map.set(eq.id, new Set());
+        return;
+      }
+      const ignored = getIgnoredVarsForEquation(eq.type);
       const set = new Set<string>([
-        ...detectParameters(eq.expression),
-        ...(eq.expressionY ? detectParameters(eq.expressionY) : []),
+        ...detectParameters(eq.expression, ignored),
+        ...(eq.expressionY ? detectParameters(eq.expressionY, ignored) : []),
       ]);
       set.forEach(p => union.add(p));
       map.set(eq.id, set);
@@ -317,50 +356,12 @@ export default function App() {
     [equations, sliderScope, traceSnap, activeTraces],
   );
 
-  // ── derive SpecialPoints ────────────────────────────────────────────────
+  // ── derive SpecialPoints (calculated across all curves for hover reveal) ─
   const specialPoints = useMemo<SpecialPoint[]>(() => {
-    if (!showSpecial) return [];
-    const RANGE = 25;
-    const pts: SpecialPoint[] = [];
-    const cartesian = equations.filter(
-      eq => eq.visible && eq.type === 'cartesian' && !eq.error && eq.expression.trim(),
-    );
-    // Compile each expression once. Building the evaluator inside the sampling
-    // callback would re-parse it on every one of the thousands of probes the
-    // root/extremum search makes.
-    const compiled = cartesian.map(eq => {
-      try {
-        const f = parseWithScope(eq.expression);
-        return { eq, fn: (x: number) => f({ ...sliderScope, x }) };
-      } catch { return null; }
-    }).filter((c): c is { eq: typeof cartesian[number]; fn: (x: number) => number } => c !== null);
+    return calculateSpecialPoints(equations, sliderScope);
+  }, [equations, sliderScope]);
 
-    for (const { eq, fn } of compiled) {
-      try {
-        findRoots(fn, -RANGE, RANGE).forEach(p => pts.push({ ...p, kind: 'root', color: eq.color }));
-        findExtrema(fn, -RANGE, RANGE).forEach(p => pts.push({ ...p, kind: 'extremum', color: eq.color }));
-      } catch { /* skip */ }
-    }
-    for (let i = 0; i < compiled.length; i++) {
-      for (let j = i + 1; j < compiled.length; j++) {
-        try {
-          findIntersections(compiled[i].fn, compiled[j].fn, -RANGE, RANGE).forEach(p =>
-            pts.push({ ...p, kind: 'intersection', color: '#ffffff' }),
-          );
-        } catch { /* skip */ }
-      }
-    }
-    return pts;
-  }, [showSpecial, equations, sliderScope]);
 
-  // ── manual point input ──────────────────────────────────────────────────
-  const addManualPoint = useCallback(() => {
-    const x = parseFloat(ptX);
-    const y = parseFloat(ptY);
-    if (!isFinite(x) || !isFinite(y)) return;
-    addPoints([{ x, y }], '__manual__');
-    setPtX(''); setPtY('');
-  }, [ptX, ptY, addPoints]);
 
   // ── file upload (JSON + CSV) ────────────────────────────────────────────
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -546,58 +547,6 @@ export default function App() {
               ))}
             </div>
           )}
-        </div>
-      );
-    }
-
-    if (tool === 'special-pts') {
-      if (location === 'topbar') {
-        return (
-          <button
-            title="Toggle roots, extrema & intersections"
-            onClick={() => setShowSpecial(v => !v)}
-            className={[
-              'flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-md transition-all border shadow-sm active:scale-95 cursor-pointer',
-              showSpecial
-                ? 'bg-amber-500/15 text-amber-300 border-amber-500/50 shadow-amber-500/10'
-                : 'bg-neutral-800/80 hover:bg-neutral-700/80 text-neutral-400 hover:text-neutral-200 border-neutral-700/60 hover:border-neutral-500',
-            ].join(' ')}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                showSpecial ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]' : 'bg-neutral-500'
-              }`}
-            />
-            <span>special pts</span>
-          </button>
-        );
-      }
-      return (
-        <div className="px-3 pt-2.5 pb-2 border-t border-[#161412] w-full">
-          <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-2">SPECIAL POINTS</p>
-          <button
-            onClick={() => setShowSpecial(v => !v)}
-            className={[
-              'w-full flex items-center justify-between px-3 py-2 rounded-md font-mono text-xs transition-all border shadow-sm active:scale-95 cursor-pointer',
-              showSpecial
-                ? 'bg-amber-500/15 text-amber-300 border-amber-500/50 shadow-amber-500/10'
-                : 'bg-gradient-to-b from-neutral-800 to-neutral-800/90 hover:from-neutral-700 hover:to-neutral-700/90 text-neutral-300 hover:text-white border-neutral-700/80 hover:border-amber-400/40',
-            ].join(' ')}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  showSpecial ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]' : 'bg-neutral-500'
-                }`}
-              />
-              <span>Roots, Extrema & Intersections</span>
-            </div>
-            <span
-              className={`w-2 h-2 rounded-full transition-colors ${
-                showSpecial ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]' : 'bg-neutral-600'
-              }`}
-            />
-          </button>
         </div>
       );
     }
@@ -961,7 +910,13 @@ export default function App() {
     <div className="flex flex-col h-full bg-neutral-900">
       {/* ── header ── */}
       <header className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-[#161412] shrink-0">
-        <span className="font-pixel text-amber-400 text-sm tracking-widest">QuickPlot</span>
+        <a
+          href={getLandingUrl()}
+          title="Return to QuickPlot landing page"
+          className="font-pixel text-amber-400 text-sm tracking-widest hover:text-amber-300 hover:brightness-110 transition-all cursor-pointer select-none"
+        >
+          QuickPlot
+        </a>
         <span className="font-pixel text-neutral-500 text-sm">/&nbsp;2D</span>
         <span className="text-neutral-600 shrink-0">|</span>
         <WorkspaceTitle
@@ -1223,20 +1178,28 @@ export default function App() {
             }}
             className="flex-1 overflow-y-auto flex flex-col"
           >
-            {/* equations */}
+            {/* expressions list */}
             <div className="p-3">
-              <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-3">EQUATIONS</p>
-              <div className="space-y-0">
+              <div className="flex items-center gap-2 mb-3">
+                <p className="font-pixel text-neutral-400 text-xs tracking-widest">EXPRESSIONS</p>
+                <span className="text-[10px] text-neutral-500 font-mono">
+                  {equations.length}
+                </span>
+              </div>
+
+              <div className="space-y-0.5">
                 {equations.map((eq, i) => {
                   const paramNames = paramsByEq.byEq.get(eq.id) ?? new Set<string>();
                   const inlineSliders = Object.values(sliders).filter(s => paramNames.has(s.name));
                   return (
                     <EquationRow
                       key={eq.id}
+                      index={i}
                       entry={eq}
                       autoFocus={i === equations.length - 1 && eq.expression === ''}
                       onChange={patch => update(eq.id, patch)}
                       onDelete={() => remove(eq.id)}
+                      onEnter={() => add()}
                       onTrace={() => startTrace(eq.id)}
                       isTracing={activeTraces.has(eq.id)}
                       inlineSliders={inlineSliders}
@@ -1251,23 +1214,24 @@ export default function App() {
                   );
                 })}
               </div>
-              {/* add buttons - NO plus sign */}
-              <div className="flex gap-1.5 mt-3">
-                {([
-                  ['cartesian',  'y ='],
-                  ['polar',      'r ='],
-                  ['parametric', '(x,y)'],
-                  ['implicit',   'f(x,y)'],
-                ] as [EquationType, string][]).map(([t, label]) => (
-                  <button
-                    key={t}
-                    onClick={() => add(t)}
-                    title={`Add new ${t} equation`}
-                    className="flex-1 py-1.5 rounded-md bg-gradient-to-b from-neutral-800 to-neutral-800/90 hover:from-neutral-700 hover:to-neutral-700/90 border border-neutral-700/70 hover:border-amber-400/50 text-neutral-300 hover:text-amber-300 font-mono text-[11px] font-medium transition-all shadow-sm active:scale-95 cursor-pointer"
-                  >
-                    {label}
-                  </button>
-                ))}
+
+              {equations.length === 0 && (
+                <div className="text-center py-6 px-3 rounded-lg border border-dashed border-neutral-800 bg-neutral-900/40">
+                  <p className="text-xs text-neutral-400 font-mono">No expressions yet</p>
+                  <p className="text-[11px] text-neutral-600 font-mono mt-1">Type equations, polar curves, parametric, or points</p>
+                </div>
+              )}
+
+              {/* Single Desmos-style Add Expression button */}
+              <div className="mt-3">
+                <button
+                  onClick={() => add()}
+                  title="Add new expression (or press Enter)"
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-md bg-gradient-to-b from-neutral-800 to-neutral-800/90 hover:from-neutral-700 hover:to-neutral-700/90 border border-neutral-700/80 hover:border-amber-400/50 text-neutral-200 hover:text-amber-300 text-xs font-mono transition-all shadow-sm active:scale-[0.98] cursor-pointer group"
+                >
+                  <span className="font-bold text-amber-400 group-hover:scale-110 transition-transform text-sm">+</span>
+                  <span>Add Expression</span>
+                </button>
               </div>
             </div>
 
@@ -1283,42 +1247,6 @@ export default function App() {
               onToggleAnimation={toggleAnimation}
               onSpeedChange={sliderSpeedChange}
             />
-
-            {/* manual point input - button appears only when coordinates typed */}
-            <div className="px-3 pt-2 pb-3 border-t border-[#161412]">
-              <p className="font-pixel text-neutral-400 text-xs tracking-widest mb-2">ADD POINT</p>
-              <div className="flex items-center gap-1.5">
-                <span className="text-neutral-500 text-xs font-mono">(</span>
-                <input
-                  type="number"
-                  placeholder="x"
-                  value={ptX}
-                  onChange={e => setPtX(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addManualPoint()}
-                  className="w-14 bg-neutral-900/90 text-neutral-200 text-xs rounded-md px-1.5 py-1 font-mono border border-neutral-700/80 outline-none text-center focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40 transition-colors shadow-inner"
-                />
-                <span className="text-neutral-500 text-xs font-mono">,</span>
-                <input
-                  type="number"
-                  placeholder="y"
-                  value={ptY}
-                  onChange={e => setPtY(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addManualPoint()}
-                  className="w-14 bg-neutral-900/90 text-neutral-200 text-xs rounded-md px-1.5 py-1 font-mono border border-neutral-700/80 outline-none text-center focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40 transition-colors shadow-inner"
-                />
-                <span className="text-neutral-500 text-xs font-mono">)</span>
-                {(ptX.trim() !== '' || ptY.trim() !== '') && (
-                  <button
-                    onClick={addManualPoint}
-                    className="ml-auto px-2.5 h-7 rounded-md bg-gradient-to-b from-amber-400 to-amber-500 text-neutral-950 hover:from-amber-300 hover:to-amber-400 transition-all font-mono text-xs font-bold flex items-center gap-1 shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
-                    title="Plot point"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-950" />
-                    <span>Plot</span>
-                  </button>
-                )}
-              </div>
-            </div>
 
             {/* Sidebar Docked Tools — each tool renders as its own section with its own header */}
             <div

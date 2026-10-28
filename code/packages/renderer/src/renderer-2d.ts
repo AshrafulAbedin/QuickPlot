@@ -413,26 +413,51 @@ function drawSpecialPoints(
   ctx: CanvasRenderingContext2D,
   vp: Viewport,
   pts: SpecialPoint[],
+  hoverPos?: { x: number; y: number } | null,
 ) {
+  if (!pts.length) return;
+  // If not hovering near any point, do not render special points
+  if (!hoverPos) return;
+
+  const HOVER_RADIUS = 26;
+  const candidatePts: Array<{ pt: SpecialPoint; sx: number; sy: number; dist: number }> = [];
+
   for (const pt of pts) {
     const [sx, sy] = worldToScreen(vp, pt.x, pt.y);
     if (sx < -10 || sx > vp.width + 10 || sy < -10 || sy > vp.height + 10) continue;
+    const dist = Math.hypot(sx - hoverPos.x, sy - hoverPos.y);
+    if (dist <= HOVER_RADIUS) {
+      candidatePts.push({ pt, sx, sy, dist });
+    }
+  }
 
-    // outer white ring
+  if (!candidatePts.length) return;
+
+  // Prioritize closest point to mouse
+  candidatePts.sort((a, b) => a.dist - b.dist);
+
+  for (const { pt, sx, sy } of candidatePts.slice(0, 2)) {
+    // Outer translucent aura
     ctx.beginPath();
-    ctx.arc(sx, sy, 6, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fill();
 
-    // coloured inner dot
+    // Outer white ring
     ctx.beginPath();
-    ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+    ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.fill();
+
+    // Coloured inner dot
+    ctx.beginPath();
+    ctx.arc(sx, sy, 3.5, 0, Math.PI * 2);
     ctx.fillStyle = pt.color;
     ctx.fill();
 
-    // coordinate label
+    // Coordinate label
     const label = `(${fmtCoord(pt.x)}, ${fmtCoord(pt.y)})`;
-    drawLabel(ctx, vp, sx, sy, label, '#ffffff');
+    drawLabel(ctx, vp, sx, sy, label, '#ffffff', 0.85);
   }
 }
 
@@ -460,6 +485,7 @@ export function drawCurves(
   vp: Viewport,
   curves: PlotCurve[],
   specialPoints?: SpecialPoint[],
+  hoverPos?: { x: number; y: number } | null,
 ): void {
   for (const curve of curves) {
     switch (curve.kind) {
@@ -470,5 +496,5 @@ export function drawCurves(
       case 'implicit':   drawImplicit(ctx, vp, curve);      break;
     }
   }
-  if (specialPoints?.length) drawSpecialPoints(ctx, vp, specialPoints);
+  if (specialPoints?.length) drawSpecialPoints(ctx, vp, specialPoints, hoverPos);
 }

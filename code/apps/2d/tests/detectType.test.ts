@@ -69,4 +69,53 @@ describe('detectEquationType', () => {
   it('rejects non-numeric parens as points', () => {
     expect(tryParsePoints('(cos(t), sin(t))')).toBeNull();
   });
+
+  it('detects named points like f(2,3), A(1, 2), and P = (2, 3)', () => {
+    expect(detectEquationType('f(2,3)')).toEqual({
+      type: 'points',
+      expression: 'f(2,3)',
+      points: [{ x: 2, y: 3 }],
+    });
+    expect(detectEquationType('f(2, 3)')).toEqual({
+      type: 'points',
+      expression: 'f(2, 3)',
+      points: [{ x: 2, y: 3 }],
+    });
+    expect(detectEquationType('A(1, 2), B(3, 4)')).toEqual({
+      type: 'points',
+      expression: 'A(1, 2), B(3, 4)',
+      points: [{ x: 1, y: 2 }, { x: 3, y: 4 }],
+    });
+    expect(detectEquationType('P = (2, 3)')).toEqual({
+      type: 'points',
+      expression: 'P = (2, 3)',
+      points: [{ x: 2, y: 3 }],
+    });
+  });
+
+  it('detects implicit equations written with f(x,y) notation', () => {
+    expect(detectEquationType('f(x, y) = x^2 + y^2 - 4')).toEqual({
+      type: 'implicit',
+      expression: 'x^2 + y^2 - 4 = 0',
+    });
+    expect(detectEquationType('f(x,y) = x^2 + y^2 = 25')).toEqual({
+      type: 'implicit',
+      expression: 'x^2 + y^2 = 25',
+    });
+    expect(detectEquationType('f(x,y)')).toEqual({
+      type: 'implicit',
+      expression: 'x^2 + y^2 = 25',
+    });
+  });
+
+  it('detects constant equations like Euler identity as implicit without errors', () => {
+    expect(detectEquationType('e^ipi + 1 = 0')).toEqual({
+      type: 'implicit',
+      expression: 'e^ipi + 1 = 0',
+    });
+    expect(detectEquationType('e^(i*pi) + 1 = 0')).toEqual({
+      type: 'implicit',
+      expression: 'e^(i*pi) + 1 = 0',
+    });
+  });
 });

@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 
 export type ToolId2D =
   | 'help'
-  | 'special-pts'
   | 'themes'
   | '3d'
   | 'reset'
@@ -12,7 +11,6 @@ export type ToolId2D =
 
 export const DEFAULT_TOPBAR_2D: ToolId2D[] = [
   'help',
-  'special-pts',
   'themes',
   '3d',
   'reset',
@@ -24,8 +22,8 @@ export const DEFAULT_SIDEBAR_2D: ToolId2D[] = [
   'share',
 ];
 
-const STORAGE_KEY_TOPBAR = 'qp_toolbar_topbar_2d_v2';
-const STORAGE_KEY_SIDEBAR = 'qp_toolbar_sidebar_2d_v2';
+const STORAGE_KEY_TOPBAR = 'qp_toolbar_topbar_2d_v3';
+const STORAGE_KEY_SIDEBAR = 'qp_toolbar_sidebar_2d_v3';
 
 export interface DropIndicator {
   zone: 'topbar' | 'sidebar';
@@ -38,7 +36,9 @@ export function useCustomToolbar2D() {
       const raw = localStorage.getItem(STORAGE_KEY_TOPBAR);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((t: string) => t !== 'special-pts') as ToolId2D[];
+        }
       }
     } catch { /* ignore */ }
     return DEFAULT_TOPBAR_2D;

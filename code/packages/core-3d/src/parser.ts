@@ -303,20 +303,31 @@ export function parseWithScope(
 
 // Multi-char mathjs constants / functions that start with a letter and
 // would otherwise look like user variables after we strip function calls.
-const KNOWN_CONSTANTS = new Set([
+const KNOWN_MATH_CONSTANTS = new Set([
   'pi', 'phi', 'tau', 'Infinity', 'NaN', 'true', 'false',
-  'e',  'i',   'x',  'y', 'z', 't', 'theta', 'r',
+  'e',  'i',
+]);
+
+const DEFAULT_IGNORED_VARS = new Set([
+  'x', 'y', 'z', 't', 'theta', 'r',
 ]);
 
 /**
  * Returns the set of single-letter free parameters found in `raw` —
- * i.e. letters that are not x/y/z/t/e/i/pi and are not mathjs function names.
+ * i.e. letters that are not in ignoredVars and are not mathjs constants/functions.
  *
  * Example: "a * sin(b * x) + c" → ['a', 'b', 'c']
  */
-export function detectParameters(raw: string): string[] {
+export function detectParameters(
+  raw: string,
+  ignoredVars?: string[] | Set<string>,
+): string[] {
   const expr = normalize(raw);
   if (!expr) return [];
+  const ignored = ignoredVars
+    ? (ignoredVars instanceof Set ? ignoredVars : new Set(ignoredVars))
+    : DEFAULT_IGNORED_VARS;
+
   try {
     // Use mathjs parse tree to find SymbolNodes that aren't function names
     const ast = parse(expr);
@@ -326,7 +337,7 @@ export function detectParameters(raw: string): string[] {
       if (node.type === 'SymbolNode') {
         const name: string = node.name;
         // single-letter, not a known constant / independent variable
-        if (/^[a-zA-Z]$/.test(name) && !KNOWN_CONSTANTS.has(name)) {
+        if (/^[a-zA-Z]$/.test(name) && !KNOWN_MATH_CONSTANTS.has(name) && !ignored.has(name)) {
           params.add(name);
         }
       }
@@ -337,7 +348,10 @@ export function detectParameters(raw: string): string[] {
     let s = expr;
     s = s.replace(/\b[a-zA-Z][a-zA-Z0-9_]*\s*\(/g, '(');   // strip fn names
     s = s.replace(/\b(pi|phi|tau|Infinity|NaN|true|false)\b/gi, '0');
-    s = s.replace(/\b(x|y|z|t|theta|e|i|r)\b/g, '0');
+    s = s.replace(/\b(e|i)\b/g, '0');
+    ignored.forEach(v => {
+      s = s.replace(new RegExp(`\\b${v}\\b`, 'g'), '0');
+    });
     return [...new Set(s.match(/\b[a-zA-Z]\b/g) ?? [])];
   }
 }

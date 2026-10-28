@@ -5,3 +5,4 @@ allowBuilds:
   esbuild: true
   '@firebase/util': true
   protobufjs: true
+  tesseract.js: set this to true or false

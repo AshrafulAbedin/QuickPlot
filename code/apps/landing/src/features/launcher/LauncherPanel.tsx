@@ -88,7 +88,7 @@ function LauncherCard({ label, hint, icon, href, onClick, external = false }: La
         </span>
         <span
           aria-hidden
-          className="shrink-0 text-paper-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-amber-600"
+          className="shrink-0 text-paper-400 transition-transform duration-200 group-hover:translate-x-2 group-hover:text-amber-600 text-lg font-bold"
         >
           {external ? '↗' : '→'}
         </span>
@@ -112,35 +112,39 @@ export function LauncherPanel() {
       {showTools ? (
         <ToolsPanel onBack={() => setShowTools(false)} />
       ) : (
-        <div className="animate-rise w-full max-w-[440px]">
-          <h2 className="font-head text-3xl font-bold tracking-tight text-ink-900">
+        <div className="w-full max-w-[440px]">
+          <h2 className="animate-slide-up-1 font-head text-3xl font-bold tracking-tight text-ink-900">
             Start Plotting
           </h2>
 
           <div className="mt-8 flex flex-col gap-4">
-            <LauncherCard
-              label="2D"
-              hint="Cartesian · polar · parametric · implicit"
-              icon={<Icon2D />}
-              href={get2DUrl()}
-              external
-            />
-            <LauncherCard
-              label="3D"
-              hint="Surface plots with orbit controls"
-              icon={<Icon3D />}
-              href={get3DUrl()}
-              external
-            />
-            <LauncherCard
-              label="TOOLS"
-              hint="Browser extension, data import, share links"
-              icon={<IconTools />}
-              onClick={() => setShowTools(true)}
-            />
+            <div className="animate-slide-up-2">
+              <LauncherCard
+                label="2D GRAPHER"
+                hint="Cartesian · polar · parametric · implicit"
+                icon={<Icon2D />}
+                href={get2DUrl()}
+                external
+              />
+            </div>
+            <div className="animate-slide-up-3">
+              <LauncherCard
+                label="3D GRAPHER"
+                hint="Surface plots with orbit controls"
+                icon={<Icon3D />}
+                href={get3DUrl()}
+                external
+              />
+            </div>
+            <div className="animate-slide-up-4">
+              <LauncherCard
+                label="TOOLS"
+                hint="Browser extension, data import, share links"
+                icon={<IconTools />}
+                onClick={() => setShowTools(true)}
+              />
+            </div>
           </div>
-
-
         </div>
       )}
     </div>

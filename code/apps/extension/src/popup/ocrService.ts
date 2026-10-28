@@ -150,6 +150,15 @@ export function cleanOcrMathText(rawText: string): string {
   }
 
   // 5. Fix common OCR misidentifications of superscripts:
+  // Euler's identity: small superscript 'iπ' in textbooks has vertical stems that Tesseract reads as '”', '"', "''", '’', '″'
+  // e.g. e” + 1 = 0, e" + 1 = 0, e'' + 1 = 0, e^” + 1 = 0, e^" + 1 = 0 -> e^(i*pi) + 1 = 0
+  candidate = candidate.replace(/\be\s*\^?\s*["”'’“‘″′]{1,2}(?=\s*[+\-=]|\s*$|\s*\))/gi, 'e^(i*pi)');
+  candidate = candidate.replace(/\be\s*\^\s*\{?\s*i\s*\*?\s*(?:pi|π)\s*\}?/gi, 'e^(i*pi)');
+  candidate = candidate.replace(/\be\s*\^\s*\{?\s*(?:pi|π)\s*\*?\s*i\s*\}?/gi, 'e^(i*pi)');
+  candidate = candidate.replace(/\be\s*\^\s*\(?\s*i\s*pi\s*\)?/gi, 'e^(i*pi)');
+  candidate = candidate.replace(/\be\s*\^\s*\(?\s*pi\s*i\s*\)?/gi, 'e^(i*pi)');
+  candidate = candidate.replace(/\beipi\b/gi, 'e^(i*pi)');
+
   // When '?' or '%' follows a variable or term (e.g. 'y?', 'x%', 'y%'), it is an exponent '^2'
   candidate = candidate.replace(/\b([a-zA-Z])\s*[\?%]/g, '$1^2');
   candidate = candidate.replace(/[\)\]]\s*[\?%]/g, ')^2');

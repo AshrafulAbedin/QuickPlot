@@ -26,7 +26,7 @@ export function toCurve(eq: EquationEntry, scope: Record<string, number>): PlotC
         const fn = parseWithScope(eq.expression);
         return {
           kind: 'polar',
-          fn: (t) => fn({ ...scope, t }),
+          fn: (angle) => fn({ ...scope, theta: angle, t: scope.t !== undefined ? scope.t : angle }),
           thetaMin: eq.tMin, thetaMax: eq.tMax,
           color: eq.color, label: eq.expression,
         };
@@ -71,8 +71,10 @@ export function useEquations(initial: EquationEntry[]) {
       prev.map(eq => {
         if (eq.id !== id) return eq;
         const next = { ...eq, ...patch };
-        if ('expression' in patch) {
-          next.error = next.type === 'implicit'
+        if ('expression' in patch || 'type' in patch) {
+          next.error = next.type === 'points'
+            ? null
+            : next.type === 'implicit'
             ? validateExpression(normalizeImplicit(next.expression))
             : validateExpression(next.expression);
         }

@@ -6,7 +6,7 @@ import {
   type Viewport, DEFAULT_VIEWPORT,
   pan   as panVP,
   zoom  as zoomVP,
-  screenToWorld,
+  screenToWorld, worldToScreen,
   visibleRange,
   drawGrid, drawCurves,
   type PlotCurve, type SpecialPoint,
@@ -43,6 +43,7 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
 
   const [viewport,    setViewport]    = useState<Viewport>(DEFAULT_VIEWPORT);
   const [mouseWorld,  setMouseWorld]  = useState<[number, number] | null>(null);
+  const [hoverPos,    setHoverPos]    = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => { vpRef.current = viewport; }, [viewport]);
 
@@ -155,9 +156,9 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
     ctx.save();
     ctx.scale(dpr, dpr);
     drawGrid(ctx, viewport, theme ?? DEFAULT_THEME);
-    drawCurves(ctx, viewport, curves, specialPoints);
+    drawCurves(ctx, viewport, curves, specialPoints, hoverPos);
     ctx.restore();
-  }, [viewport, curves, specialPoints, theme]);
+  }, [viewport, curves, specialPoints, theme, hoverPos]);
 
   // ── mouse ─────────────────────────────────────────────────────────────
   const dragRaf = useRef<number | null>(null);
@@ -165,6 +166,7 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
 
   const onMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     dragging.current = true;
+    setHoverPos(null);
     e.currentTarget.style.cursor = 'grabbing';
     lastPos.current = { x: e.clientX, y: e.clientY };
   }, []);
@@ -173,10 +175,13 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect     = canvas.getBoundingClientRect();
-    const [wx, wy] = screenToWorld(vpRef.current, e.clientX - rect.left, e.clientY - rect.top);
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const [wx, wy] = screenToWorld(vpRef.current, sx, sy);
     setMouseWorld([wx, wy]);
 
     if (dragging.current) {
+      setHoverPos(null);
       const dx = e.clientX - lastPos.current.x;
       const dy = e.clientY - lastPos.current.y;
       lastPos.current = { x: e.clientX, y: e.clientY };
@@ -198,18 +203,31 @@ export const Canvas2D = forwardRef<Canvas2DHandle, Props>(function Canvas2D(
           dragRaf.current = null;
         });
       }
+    } else {
+      setHoverPos({ x: sx, y: sy });
+      const isOverPt = specialPoints?.some(pt => {
+        const [psx, psy] = worldToScreen(vpRef.current, pt.x, pt.y);
+        return Math.hypot(psx - sx, psy - sy) <= 24;
+      });
+      e.currentTarget.style.cursor = isOverPt ? 'pointer' : 'crosshair';
     }
-  }, []);
+  }, [specialPoints]);
 
   const stopDrag = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     dragging.current = false;
     e.currentTarget.style.cursor = 'crosshair';
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      setHoverPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
   }, []);
 
   const onMouseLeave = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     dragging.current = false;
     e.currentTarget.style.cursor = 'crosshair';
     setMouseWorld(null);
+    setHoverPos(null);
   }, []);
 
   const onDoubleClick = useCallback(() => {

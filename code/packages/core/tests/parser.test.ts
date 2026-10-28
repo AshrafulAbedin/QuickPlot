@@ -20,6 +20,13 @@ describe('parseExpression', () => {
     expect(parseExpression('pi')(0)).toBeCloseTo(Math.PI, 10);
   });
 
+  it('correctly evaluates Euler identity e^(i*pi) + 1, e^ipi + 1, and OCR e” + 1', () => {
+    expect(parseExpression('e^(i*pi) + 1')(0)).toBeCloseTo(0, 8);
+    expect(parseExpression('e^ipi + 1')(0)).toBeCloseTo(0, 8);
+    expect(parseExpression('e” + 1')(0)).toBeCloseTo(0, 8);
+    expect(parseExpression('e" + 1')(0)).toBeCloseTo(0, 8);
+  });
+
   it('strips "y = " prefix before compiling', () => {
     const f = parseExpression('y = 2*x + 1');
     expect(f(3)).toBe(7);

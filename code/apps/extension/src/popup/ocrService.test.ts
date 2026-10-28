@@ -103,5 +103,27 @@ describe('OCR Math Text Normalization', () => {
     expect(res.isValid).toBe(true);
     expect(res.type).toBe('implicit');
   });
+
+  it('corrects Euler identity OCR misread where superscript i*pi is read as quotes: e” + 1 = 0', () => {
+    const raw = 'e” + 1 = 0';
+    const cleaned = cleanOcrMathText(raw);
+    expect(cleaned).toBe('e^(i * pi) + 1 = 0');
+
+    const res = validateAndParseEquation(cleaned);
+    expect(res.isValid).toBe(true);
+    expect(res.type).toBe('implicit');
+    if (res.isValid && res.evalImplicit) {
+      expect(res.evalImplicit(0, 0)).toBeCloseTo(0);
+    }
+    if (res.isValid && res.solutions) {
+      expect(res.solutions[0]).toContain('True identity');
+    }
+  });
+
+  it('corrects e^ipi + 1 = 0 and e" + 1 = 0', () => {
+    expect(cleanOcrMathText('e^ipi + 1 = 0')).toBe('e^(i * pi) + 1 = 0');
+    expect(cleanOcrMathText('e" + 1 = 0')).toBe('e^(i * pi) + 1 = 0');
+    expect(cleanOcrMathText("e'' + 1 = 0")).toBe('e^(i * pi) + 1 = 0');
+  });
 });
 

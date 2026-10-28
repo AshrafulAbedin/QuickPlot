@@ -106,6 +106,20 @@ function get2DUrl(): string {
   return '/2d/';
 }
 
+function getLandingUrl(): string {
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      return 'http://localhost:5173/';
+    }
+  }
+  const envUrl = (import.meta.env as Record<string, string | undefined>).VITE_URL_LANDING;
+  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
+    return envUrl;
+  }
+  return '/';
+}
+
 function loadStoredName3D(): string {
   try {
     return window.localStorage.getItem(WORKSPACE_NAME_STORAGE_KEY_3D) || DEFAULT_WORKSPACE_NAME_3D;
@@ -885,7 +899,13 @@ export default function App() {
     <div className="flex flex-col h-full bg-neutral-900 select-none">
       {/* ── header ── */}
       <header className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-[#161412] shrink-0">
-        <span className="font-pixel text-amber-400 text-sm tracking-widest">QuickPlot</span>
+        <a
+          href={getLandingUrl()}
+          title="Return to QuickPlot landing page"
+          className="font-pixel text-amber-400 text-sm tracking-widest hover:text-amber-300 hover:brightness-110 transition-all cursor-pointer select-none"
+        >
+          QuickPlot
+        </a>
         <span className="font-pixel text-neutral-500 text-sm">/&nbsp;3D</span>
         <span className="text-neutral-600 shrink-0">|</span>
 

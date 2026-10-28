@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "postbuild": "powershell -Command \"Compress-Archive -Path dist/* -DestinationPath ../landing/public/quickplot-extension.zip -Force\"",
+    "pack": "powershell -Command \"Compress-Archive -Path dist/* -DestinationPath ../landing/public/quickplot-extension.zip -Force\"",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -267,3 +267,115 @@ body {
     animation: wavy-underline-hover 0.45s linear infinite;
   }
 }
+
+/* ---------------------------------------------------------------------
+   Sliding Animations & Micro-interactions
+   --------------------------------------------------------------------- */
+
+@keyframes slide-in-bottom {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wave-drift-1 {
+  0% {
+    transform: translateX(-35px) translateY(0px) scaleY(1);
+  }
+  50% {
+    transform: translateX(25px) translateY(-12px) scaleY(1.06);
+  }
+  100% {
+    transform: translateX(45px) translateY(8px) scaleY(0.96);
+  }
+}
+
+@keyframes wave-drift-2 {
+  0% {
+    transform: translateX(40px) translateY(8px) scaleY(1.04);
+  }
+  50% {
+    transform: translateX(-20px) translateY(-10px) scaleY(0.96);
+  }
+  100% {
+    transform: translateX(-40px) translateY(5px) scaleY(1);
+  }
+}
+
+@keyframes ambient-glow {
+  0%, 100% {
+    opacity: 0.16;
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    opacity: 0.28;
+    transform: scale(1.18) translate(25px, -20px);
+  }
+}
+
+.animate-slide-up-1 {
+  animation: slide-in-bottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-up-2 {
+  animation: slide-in-bottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+
+.animate-slide-up-3 {
+  animation: slide-in-bottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+}
+
+.animate-slide-up-4 {
+  animation: slide-in-bottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+}
+
+.animate-slide-up-5 {
+  animation: slide-in-bottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
+}
+
+.animate-slide-left {
+  animation: slide-in-left 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-right {
+  animation: slide-in-right 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-wave-1 {
+  animation: wave-drift-1 16s ease-in-out infinite alternate;
+}
+
+.animate-wave-2 {
+  animation: wave-drift-2 22s ease-in-out infinite alternate;
+}
+
+.animate-ambient-glow {
+  animation: ambient-glow 9s ease-in-out infinite;
+}

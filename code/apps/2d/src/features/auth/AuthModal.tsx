@@ -132,7 +132,13 @@ export function AuthModal({ open, onClose, prompt }: Props) {
 
         {/* Title */}
         <div className="flex items-center gap-2 mb-2">
-          <span className="font-pixel text-amber-400 text-sm tracking-widest">QuickPlot</span>
+          <a
+            href={getLandingUrl()}
+            title="Return to QuickPlot landing page"
+            className="font-pixel text-amber-400 text-sm tracking-widest hover:text-amber-300 transition-colors cursor-pointer"
+          >
+            QuickPlot
+          </a>
           <span className="text-neutral-600">/</span>
           <span className="font-mono text-neutral-300 text-xs font-semibold uppercase">Account</span>
         </div>

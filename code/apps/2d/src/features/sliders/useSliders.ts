@@ -16,6 +16,20 @@ const STEPS_PER_SECOND = 120;
 /** A long frame gap (backgrounded tab, GC pause) must not teleport the value. */
 const MAX_FRAME_SECONDS = 0.1;
 
+export function getIgnoredVarsForEquation(type: string): string[] {
+  switch (type) {
+    case 'cartesian':
+    case 'implicit':
+      return ['x', 'y'];
+    case 'polar':
+      return ['theta', 'r'];
+    case 'parametric':
+      return ['t'];
+    default:
+      return ['x', 'y', 'z', 't', 'theta', 'r'];
+  }
+}
+
 export function useSliders(
   equations: EquationEntry[],
   initialSliders: Record<string, Slider> = {},
@@ -30,8 +44,10 @@ export function useSliders(
   const paramKey = useMemo(() => {
     const all = new Set<string>();
     equations.forEach(eq => {
-      detectParameters(eq.expression).forEach(p => all.add(p));
-      if (eq.expressionY) detectParameters(eq.expressionY).forEach(p => all.add(p));
+      if (eq.type === 'points') return;
+      const ignored = getIgnoredVarsForEquation(eq.type);
+      detectParameters(eq.expression, ignored).forEach(p => all.add(p));
+      if (eq.expressionY) detectParameters(eq.expressionY, ignored).forEach(p => all.add(p));
     });
     return Array.from(all).sort().join(',');
   }, [equations]);

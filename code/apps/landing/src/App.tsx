@@ -41,9 +41,27 @@ function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: Auth
       </p>
 
       {user ? (
-        <div className="mt-11 w-full text-center">
-          <p className="text-sm text-neutral-300">Signed in as {user.displayName ?? user.email}</p>
-          <button type="button" onClick={() => void signOut()} className="mt-3 text-sm text-amber-500 underline underline-offset-4 hover:text-amber-400">Sign out</button>
+        <div className="animate-slide-up-3 mt-9 flex w-full flex-col gap-3.5">
+          <button
+            type="button"
+            onClick={() => onAuth('signin')}
+            className="btn-emboss w-full rounded-xl bg-amber-500 px-6 py-4 font-head text-lg font-semibold text-ink-900 [--emboss-base:#9a6b00] hover:bg-amber-400 group flex items-center justify-between"
+          >
+            <span>My Studio & Workspaces</span>
+            <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-2 text-xl font-bold">→</span>
+          </button>
+          <div className="flex items-center justify-between text-xs text-neutral-400 px-1 font-mono">
+            <span className="truncate max-w-[240px]">
+              Signed in as <strong className="text-neutral-200">{user.displayName ?? user.email}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="text-amber-400 hover:text-amber-300 hover:underline transition-colors shrink-0"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       ) : (
       <nav aria-label="Account" className="mt-11 flex w-full flex-col gap-5">
@@ -63,13 +81,16 @@ function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: Auth
       </nav>
       )}
 
-      <div className={`mt-11 transition-opacity duration-500 ${showLauncher ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        <p onClick={onStartPlotting} className="flex items-center justify-center gap-2 text-center text-sm font-semibold text-neutral-400 hover:text-amber-400 transition-colors cursor-pointer">
-          Or Start plotting directly
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden focusable="false">
-            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <div className="mt-10 lg:hidden">
+        <a
+          href="#launchers"
+          className="flex items-center justify-center gap-2 text-center text-sm font-semibold text-neutral-400 hover:text-amber-400 transition-colors cursor-pointer group"
+        >
+          <span>Explore 2D & 3D Graphers</span>
+          <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform group-hover:translate-y-1" fill="none">
+            <path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-        </p>
+        </a>
       </div>
     </div>
   );
@@ -77,12 +98,12 @@ function Hero({ onAuth, onStartPlotting, showLauncher }: { onAuth: (intent: Auth
 
 export default function App() {
   const [view, setView] = useState<LeftView>('hero');
-  const [showLauncher, setShowLauncher] = useState(false);
+  const [showLauncher, setShowLauncher] = useState(true);
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row overflow-x-hidden">
-      {/* Dark half — the original hero, plus the auth screens. */}
-      <main className={`relative flex min-h-[60vh] grow items-center justify-center bg-ink-800 px-6 py-16 lg:min-h-screen lg:py-20 transition-[flex-basis] duration-700 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${showLauncher ? 'lg:basis-[55%]' : 'lg:basis-[100%]'}`}>
+      {/* Dark half — the hero, plus the auth & studio hub. */}
+      <main className={`relative flex min-h-[60vh] grow items-center justify-center bg-ink-800 px-6 py-16 lg:min-h-screen lg:py-20 transition-[flex-basis] duration-700 ease-[cubic-bezier(0.2,0.9,0.3,1)] animate-slide-left ${showLauncher ? 'lg:basis-[55%]' : 'lg:basis-[100%]'}`}>
         <Backdrop />
         <div className="relative flex w-full justify-center">
           {view === 'hero' ? (
@@ -94,7 +115,7 @@ export default function App() {
       </main>
 
       {/* Light half — launchers. */}
-      <aside className={`overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${showLauncher ? 'max-h-[1200px] opacity-100 lg:basis-[45%] lg:max-h-none' : 'max-h-0 opacity-0 lg:basis-[0%] lg:max-h-none'}`}>
+      <aside id="launchers" className={`overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.2,0.9,0.3,1)] animate-slide-right ${showLauncher ? 'max-h-[1400px] opacity-100 lg:basis-[45%] lg:max-h-none' : 'max-h-0 opacity-0 lg:basis-[0%] lg:max-h-none'}`}>
         <div className="w-[100vw] lg:w-[45vw]">
           <LauncherPanel />
         </div>

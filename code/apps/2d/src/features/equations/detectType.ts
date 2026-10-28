@@ -140,12 +140,26 @@ export function detectEquationType(raw: string): DetectionResult {
     return { type: 'cartesian', expression: assign.rhs };
   }
 
+  // ── (4b) implicit assignment: f(x, y) = <expr> or z = <expr> ──────────
+  if (assign && /^(?:f|g|h|F|z)(?:\s*\(\s*x\s*,\s*y\s*\))?$/i.test(assign.lhs)) {
+    if (assign.rhs.includes('=')) {
+      return { type: 'implicit', expression: assign.rhs };
+    }
+    if (assign.rhs.trim() === '0') {
+      return { type: 'implicit', expression: 'x^2 + y^2 = 25' };
+    }
+    return { type: 'implicit', expression: `${assign.rhs} = 0` };
+  }
+
   // ── (5) any other `=` → implicit ──────────────────────────────────────
   if (assign) {
     return { type: 'implicit', expression: src };
   }
 
-  // ── (6) default: bare expression containing y → implicit; otherwise cartesian
+  // ── (6) default: bare expression containing y or f(x,y) → implicit; otherwise cartesian
+  if (/^(?:f|g|h|F)\s*\(\s*x\s*,\s*y\s*\)$/i.test(src)) {
+    return { type: 'implicit', expression: 'x^2 + y^2 = 25' };
+  }
   if (/\by\b/.test(src)) {
     return { type: 'implicit', expression: `${src} = 0` };
   }
@@ -160,12 +174,17 @@ function isFiniteNumber(s: string): boolean {
 
 /**
  * Recognises a comma-separated list of numeric pairs. Accepts each pair
- * wrapped in parens (`(1, 2), (3, 4)`) or unwrapped when the whole input is
- * a single pair (`1, 2` → one point). Anything non-numeric aborts.
+ * wrapped in parens (`(1, 2), (3, 4)`), unwrapped when the whole input is
+ * a single pair (`1, 2` → one point), or named/labeled points like
+ * `f(2, 3)`, `f(2,3)`, `A(1, 2)`, `P = (2, 3)`, `f = (2,3)`. Anything non-numeric aborts.
  */
 export function tryParsePoints(raw: string): Array<{ x: number; y: number }> | null {
   const src = raw.trim();
   if (!src) return null;
+
+  // Normalize named point patterns like f(2,3), A(1, 2), P = (2, 3), f = (2,3)
+  // by stripping the leading identifier/assignment prefix before parens.
+  const normalized = src.replace(/(?:^|(?<=,))\s*[A-Za-z_][A-Za-z0-9_]*\s*(?:=\s*)?\(([^()]*)\)/g, '($1)');
 
   // Split by top-level commas — but pairs themselves also use commas, so
   // instead find every `( … )` group and, if none, fall back to a single
@@ -173,28 +192,21 @@ export function tryParsePoints(raw: string): Array<{ x: number; y: number }> | n
   const groups: string[] = [];
   const re = /\(([^()]*)\)/g;
   let match: RegExpExecArray | null;
-  let coveredEnd = 0;
-  let coveredStart = -1;
-  while ((match = re.exec(src)) !== null) {
-    if (coveredStart === -1) coveredStart = match.index;
-    coveredEnd = match.index + match[0].length;
+  while ((match = re.exec(normalized)) !== null) {
     groups.push(match[1]);
   }
 
-  // If parens groups don't cover the whole string (ignoring commas /
-  // whitespace between them), bail — it's probably not a point list.
+  // If parens groups don't cover the whole string (ignoring commas / whitespace), bail.
   if (groups.length > 0) {
-    const between = src.slice(coveredStart === -1 ? 0 : 0, coveredEnd + 1);
-    void between;
-    const outside = src
+    const outside = normalized
       .replace(re, '')
       .replace(/[,\s]/g, '');
     if (outside.length > 0) return null;
   } else {
     // No parens at all — treat the whole line as one pair only if it has
     // exactly one top-level comma between two numerics.
-    if (!hasTopLevelComma(src)) return null;
-    groups.push(src);
+    if (!hasTopLevelComma(normalized)) return null;
+    groups.push(normalized);
   }
 
   const pts: Array<{ x: number; y: number }> = [];
